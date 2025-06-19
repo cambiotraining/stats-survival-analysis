@@ -1,0 +1,100 @@
+---
+title: "00-tests"
+editor: visual
+---
+
+```{r}
+library(survival)
+library(survminer)
+library(tidyverse)
+```
+
+Using lung dataset from survival package - can access all datasets at once using the following command. data(lung) not working for some reason.
+
+```{r}
+data(cancer, package="survival")
+```
+
+Use survfit function to fit the model. Create survival object using the Surv() function, treat as y, otherwise formula as normal
+
+```{r}
+km_lung <- survfit(Surv(time, status) ~ sex, data = lung)
+
+summary(km_lung)
+```
+
+What's in the table?!
+
+-   n: total number of subjects used to fit that curve
+-   time: the steps/timepoints on the curve
+-   n.risk: number of subjects at risk at time t (will start = n)
+-   n.event: number of events that occurred at time t
+-   n.censor: number of censored subjects (leaving the risk set without event) at time t
+-   confidence intervals for the curve
+-   strata: stratification of curve estiamtion; if not NULL, there will be multiple curves
+
+```{r}
+km_lung_table <- data.frame(time = km_lung$time,
+                  n.risk = km_lung$n.risk,
+                  n.event = km_lung$n.event,
+                  n.censor = km_lung$n.censor,
+                  surv = km_lung$surv,
+                  upper = km_lung$upper,
+                  lower = km_lung$lower
+                  )
+```
+
+Visualise curve(s):
+
+```{r}
+ggsurvplot(km_lung)
+```
+
+```{r}
+ggsurvplot(km_lung,
+           pval = TRUE, conf.interval = TRUE)
+```
+
+```{r}
+ggsurvplot(km_lung,
+           pval = TRUE, conf.interval = TRUE,
+           risk.table = TRUE, risk.table.col = "strata")
+```
+
+```{r}
+ggsurvplot(km_lung,
+           pval = TRUE, conf.interval = TRUE,
+           risk.table = TRUE, risk.table.col = "strata",
+           surv.median.line = "hv")
+```
+
+Other additions/changes you could make:
+
+```{r}
+ggsurvplot(
+   km_lung,                  # survfit object with calculated statistics.
+   pval = TRUE,              # show p-value of log-rank test.
+   conf.int = TRUE,          # show confidence intervals for 
+                             # point estimaes of survival curves.
+   conf.int.style = "step",  # customize style of confidence intervals
+   xlab = "Time in days",    # customize X axis label.
+   break.time.by = 200,      # break X axis in time intervals by 200.
+   ggtheme = theme_light(),  # customize plot and risk table with a theme.
+   risk.table = "abs_pct",   # absolute number and percentage at risk.
+  risk.table.y.text.col = T, # colour risk table text annotations.
+  risk.table.y.text = FALSE, # show bars instead of names in text annotations
+                             # in legend of risk table.
+  ncensor.plot = TRUE,       # plot the number of censored subjects at time t
+  surv.median.line = "hv",   # add the median survival pointer.
+  legend.labs = 
+    c("Male", "Female"),     # change legend labels.
+  palette = 
+    c("#E7B800", "#2E9FDF")  # custom color palettes.
+)
+```
+
+Access median survival times:
+
+```{r}
+summary(km_lung)$table
+```

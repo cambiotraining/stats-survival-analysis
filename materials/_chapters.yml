@@ -1,0 +1,16 @@
+book:
+  chapters:
+    - part: "Exploring time-to-event data"
+      chapters:
+        - materials/01-survival-data.qmd
+        - materials/02-survival-curves.qmd
+    - part: "Significance testing"
+      chapters:
+        - materials/03-comparing-two-curves.qmd
+        #- materials/04-multiple-predictors.qmd
+        #- materials/05-interpreting-and-reporting.qmd
+    #- part: "Additional topics"
+      #chapters:
+        #- materials/censoring-and-truncation.qmd
+        #- materials/time-varying-predictors.qmd
+        #- materials/cure-models.qmd
