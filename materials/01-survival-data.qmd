@@ -1,5 +1,5 @@
 ---
-title: "Survival data"
+title: "Survival (time-to-event) data"
 output: html_document
 ---
 
@@ -18,7 +18,7 @@ exec(open('setup_files/setup.py').read())
 import shutup;shutup.please()
 ```
 
-This section of the course materials explains the motivation for survival (time-to-event) analysis as a unique or specialised statistical method.
+This section of the course materials explains the motivation for survival analysis, known more generally as time-to-event analysis, as a unique or specialised statistical method.
 
 We'll get familiar with what makes time-to-event data different from other datasets, and what we'll need to do to treat them differently.
 
@@ -190,7 +190,7 @@ At minimum, the dataframe must contain a column for the `time` (or "duration fol
 
 -   Some patients have a duration of `60.5` days and an `event` marked `0`, because they were right-censored due to the study ending.
 
-#### Events & individuals 
+#### Events & individuals
 
 Each row of the `hospital_stays` data frame represents a unique patient who has been admitted to the hospital.
 

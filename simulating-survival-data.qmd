@@ -892,7 +892,96 @@ mean(pvals < 0.05)
 ```
 
 
+## Simulating a 3-group dataset (hospital discharges)
+
+```{r}
+#| warning: false
+# 20
+set.seed(21)
+
+n <- 210  # sample size
+
+study_end <- 120
+
+# Covariates
+#age <- rnorm(n, mean = 45, sd = 15)
+age <- rbeta(n, shape1 = 4, shape2 = 2) %>%
+  scales::rescale(to = c(20, 85))
+sex <- rbinom(n, 1, 0.5)
+surgery <- rbinom(n, 1, 0.4)
+weekend_admission <- rbinom(n, 1, 0.3)
+hospital_type <- factor(rep(c("public", "private", "teaching"), each = n/3))
+
+# Log-hazard model
+# Negative betas are protective against discharge (i.e., bad for the patient!)
+beta <- c(
+  age = -0.05,
+  sex = 0.01,
+  surgery = -0.5,
+  weekend_admission = -0.3
+)
+beta_type <- c(public = 0, private = 0.5, teaching = -0.2)
+
+lin_pred <- beta["age"] * age +
+            beta["sex"] * sex +
+            beta["surgery"] * surgery +
+            beta["weekend_admission"] * weekend_admission +
+            beta_type[as.character(hospital_type)]
+
+# Baseline hazard
+lambda <- 1 # higher lambda → shorter average stay
+
+# Simulate time-to-discharge
+time_true <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Censoring
+censoring <- runif(n, min = 0, max = study_end*3)
+total_censoring <- pmin(censoring, study_end)
+observed_time <- pmin(time_true, total_censoring)
+event <- as.numeric(time_true <= total_censoring)
+
+# Round to full days (optional)
+observed_time <- round(observed_time) + 1
+
+age <- round(age)
+hospital_stays <- data.frame(
+  time = observed_time/2,
+  discharged = event,
+  age, sex, surgery, weekend_admission, hospital_type
+)
 
 
+hosp_type_curve <- survfit(Surv(time, discharged) ~ hospital_type, hospital_stays)
+ggsurvplot(hosp_type_curve,
+           conf.int=TRUE,
+           pval=TRUE)
 
+hosp_surg <- survfit(Surv(time, discharged) ~ surgery, data = hospital_stays)
+ggsurvplot(hosp_surg,
+          ylab = "Probability of remaining in hospital",
+          conf.int = TRUE,
+          surv.median.line = "hv",
+          pval = TRUE)
+
+hosp_wknd <- survfit(Surv(time, discharged) ~ weekend_admission, data = hospital_stays)
+ggsurvplot(hosp_wknd,
+          ylab = "Probability of remaining in hospital",
+          conf.int = TRUE,
+          surv.median.line = "hv",
+          pval = TRUE)
+
+hosp_sex <- survfit(Surv(time, discharged) ~ sex, data = hospital_stays)
+ggsurvplot(hosp_sex,
+          ylab = "Probability of remaining in hospital",
+          conf.int = TRUE,
+          surv.median.line = "hv",
+          pval = TRUE)
+```
+
+```{r}
+write_csv(hospital_stays, "materials/data/hospital_stays.csv")
+```
+
+
+## 3-group dataset (bird eggs)
 

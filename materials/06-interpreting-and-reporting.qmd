@@ -1,0 +1,289 @@
+---
+title: "Cox regression"
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+Some intro text.
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+## When do you need Cox regression?
+
+The log-rank test is useful to make comparisons between two or three survival curves, i.e., to ask whether two or more groups are significantly different to each other in terms of their survival, but it has its limits.
+
+If the log-rank test is like a two-sample t-test or one-way ANOVA, then Cox regression is like multiple linear regression more broadly, where we have flexibility in terms of the number and type of predictors we include.
+
+You would need to use Cox regression rather than a log-rank test when:
+
+-   You want to make predictions about survival based on values of the predictor/independent variable(s)
+-   You have more than one predictor variable
+-   Your predictor variable(s) are continuous, rather than categorical
+
+## The basic idea
+
+In a linear model, we predict values of a continuous outcome variable `y`. But in a Cox regression, we predict values of something called the **hazard function**.
+
+Broadly speaking, you can interpret this hazard function as the risk of the event, say death, occurring at a given time under certain values of the different predictor variables, which might include age, disease stage, hospital type and so on.
+
+Conceptually, it's a little like a generalised linear model: a linear model that has been extended slightly.
+
+For example, in logistic regression, we predict probabilities between 0 and 1. To achieve this, we embed a linear equation inside some non-linear "wrapper" to transform it, so our output will always be a number between 0 and 1, rather than a value from some continuous outcome variable.
+
+A similar sort of transformation is happening in a Cox regression, so that we can predict values of the hazard function.
+
+::: {.callout-note collapse="true"}
+#### A little more on the maths of the Cox model
+
+If you have an inclination towards notation or theory, you might find this extra bit of explanation helpful, but it's not necessary for being able to apply the method to real data.
+
+The equation for a Cox regression looks like this:
+
+$$h(t) = h_0(t) \times exp(b_1x_1 + b_2x_2 + ... + b_nx_n)$$
+
+$h(t)$ is the hazard function. This is what we are predicting values of, i.e, it is our outcome of interest. It is a function of time, meaning that we are predicting the hazard $h$ at time $t$. If we plotted it on a graph, $h$ would go on the y-axis and $t$ on the x-axis.
+
+$h_0(t)$ is the baseline hazard. This means it is the value of the hazard function when $t=0$, i.e., at baseline, hence the name.
+
+Importantly, the baseline hazard at $t=0$ is not itself 0; it's just that we expect the hazard to change (probably increase) as time goes on.
+
+The part you will likely recognise is inside the brackets, and it's called the linear predictor: $b_1x_1 + b_2x_2 + ... + b_nx_n$. This is essentially a linear equation that is getting embedded inside another function/equation.
+
+In this case, the non-linear part is quite simple: we're raising Euler's number $e$ to the power of our linear predictor.
+
+You might notice there is no $b_0$ in that linear predictor; this is because the baseline hazard $h_0(t)$ is acting as our intercept.
+:::
+
+## A simple Cox model
+
+We'll return to our `hospital_stays.csv` dataset.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, read in hosp_stays}
+hospital_stays <- read_csv("data/hospital_stays.csv")
+```
+:::
+
+### One continuous predictor
+
+Now that we're using Cox regression, we can use our continuous `age` predictor instead of/as well as the categorical predictors we explored in previous chapters.
+
+We'll start with just `age` by itself first, as the interpretation is a little easier.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+cox_hosp <- coxph(Surv(time, discharged) ~ age,
+                  data = hospital_stays)
+
+summary(cox_hosp)
+```
+
+The syntax is identical to the `survfit` function we used in previous chapters.
+
+We provide a formula with the structure `survival object ~ predictor(s)`, and then the dataset.
+:::
+
+### Interpretation & visualisation
+
+Fitting the Cox model is the easy part. Interpreting it requires a bit more thinking.
+
+Interpreting the output:
+
+exp(coef) = the hazard ratio (exponentiated coefficient). For each additional year of age, at baseline, th e hazard increases by a factor of 0.95
+
+the p-value = null hypothesis is that log hazard ratio (coef) = 0, or that the exp(coef) = 1. Notice we are provided with additional p-values below
+
+concordance = proportion of pairs that are concordant, a measure of goodness-of-fit
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, tidy coxph results}
+cox_hosp_tidy <- tidy(cox_hosp, exponentiate = TRUE, conf.int = TRUE)
+
+cox_hosp_tidy
+```
+
+This makes it easier for us to plot our hazard ratios and confidence intervals, since the results are now stored in a tibble.
+
+```{r, plot coxph results}
+ggplot(cox_hosp_tidy,
+       aes(y = term, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  geom_pointrange() +
+  geom_vline(xintercept = 1, colour = "red")
+```
+:::
+
+
+## Making predictions
+
+Another thin
+
+Predicting survival at particular values of the predictors
+
+Create dataset
+
+Get survival function using survfit
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+
+```
+:::
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+
+```
+:::
+
+
+## Assumptions
+
+Like any type of statistical model, a Cox regression makes assumptions about the data and experimental design.
+
+Some assumptions are carried through from regular linear modelling and will be familiar; others are new for survival data.
+
+-   Independent observations
+-   Linearity (linear predictor of log hazard rate)
+-   Proportional hazards
+-   Non-informative censoring
+
+We also often check for the following two things in our data (you will likely have encountered at least the first of these when learning about linear models), although these are not formal assumption checks:
+
+-   Influential points
+-   Collinearity
+
+We'll unpack the formal assumptions in more detail below.
+
+### Independent observations
+
+Each row of the dataset, i.e., each individual that is being followed in the study, must be independent.
+
+This means their survival/event probabilities must not be related in any way.
+
+Examples of non-independence:
+
+- Genetic similarity/relatedness
+- Observing the same individual more than once (multiple teeth from same child)
+- 
+
+### Linearity
+
+### Proportional hazards
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+cox.zph(cox_hosp)
+```
+:::
+
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+plot(cox.zph(cox_hosp))
+```
+:::
+
+### Non-informative censoring
+
+All the time-to-event analysis methods we discuss in this course, including the log-rank test and Cox regression, assume that censoring is non-informative.
+
+This means that censoring must be completely independent of the probability of the event occurring.
+
+Some examples of informative censoring:
+
+Probability of censoring is increased as probability of event is increased:
+
+- Patients are more likely to drop out of/withdraw consent from a study if their health is worse (event: death)
+- Machines with early warning signs of breaking are taken out of commission before they can fail (event: machine failure)
+
+Probability of censoring is decreased as probability of event is increased:
+
+- Patients are more likely to be kept in hospital and monitored if their health is worse (event: death)
+- In an ecology study following a population, healthier animals are more likely to migrate out of the study area (event: death)
+ 
+
+::: {.callout-note collapse="true"}
+#### Cox regression is "semi-parametric"
+
+If you do any of your own reading about the assumptions of Cox regression, you may encounter people describing it as "semi-parametric".
+
+If you understood all the stuff in this assumptions section above this box, you don't really need to understand what this means, but if you're curious, here's a bit more explanation.
+
+Standard linear models are parametric. They make assumptions about the distribution of the residuals (namely, that it is normal).
+
+Non-parametric tests (e.g., Wilcoxon, Kruskal-Wallis) do not make these assumptions, hence why we use them when we have cause to believe things are not nicely normal.
+
+In Cox regression, we fall somewhere in the middle, making assumptions about the nature of the distribution in some ways and not others.
+
+There are no assumptions being made about the distribution of the raw time data itself, or about the shape of the baseline hazard function – these can look like anything.
+
+However, we do make an assumption about the hazards being proportional, and that's where the parametric part comes in.
+:::
+
+
+## Multivariate Cox regression
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+
+```
+:::
+

@@ -7,29 +7,30 @@ number-sections: false
 
 ## Overview 
 
-Include a one-paragraph summary of the course here. 
+These written materials are designed as part of a short course that teaches survival (time-to-event) analysis in an applied manner.
+
+These materials show how to implement time-to-event analysis in R and/or Python, using life sciences datasets. 
 
 ::: {.callout-tip}
 ### Learning Objectives
 
-- List course learning objectives here.
-- These describe concepts the learners should grasp and techniques they should be able to use by the end of the course.
-- You can think of these as completing the phrase "after this course, the participant should be able to..."
-- They are not supposed to be as detailed as the learning objectives of each section, but more high-level.
+- Recognise key features of time-to-event data (e.g., censoring), and the need for specialist modelling techniques
+- Visualise time-to-event data with survival curves
+- Run significance tests (log-rank test, Cox regression) to assess the impact of predictor variables on survival times
+- Interpret the output of significance tests thoughtfully
 :::
 
 
 ### Target Audience
 
-Brief description of target audience here.
+The course is aimed at researchers, particularly those in the life sciences, who are looking to analyse their own time-to-event data. 
 
 
 ### Prerequisites
 
-Detail any prerequisite skills needed to attend this course, with links to other relevant materials/courses if possible.
+The course assumes a working knowledge of R or Python, as well as an understanding of core statistical topics (up to and including linear modelling).
 
 
-<!-- Training Developer note: comment the following section out if you did not assign levels to your exercises -->
 ### Exercises
 
 Exercises in these materials are labelled according to their level of difficulty:
@@ -56,9 +57,10 @@ If you think you should be added as an author, please get in touch with us.
 {{< citation CITATION.cff >}}
 
 
-## Acknowledgements
+## Acknowledgements & References
 
 <!-- if there are no acknowledgements we can delete this section -->
 
-- List any other sources of materials that were used.
-- Or other people that may have advised during the material development (but are not authors).
+https://lifelines.readthedocs.io/en/latest/index.html 
+
+

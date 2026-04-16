@@ -1,0 +1,251 @@
+---
+title: "Comparing 3+ curves"
+output: html_document
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+```{python, median plotting helper function}
+#| echo: false
+#| message: false
+#| results: hide
+def add_median_markers(fitters, ax=None, short_lines=True, colors=None):
+    
+    """
+    Add median survival markers to a survival plot.
+
+    Parameters:
+    - fitters: A single fitter or a list of fitted lifelines KaplanMeierFitter models.
+    - ax: Optional matplotlib Axes to draw into.
+    - short_lines: If True, draw short lines. If False, draw full-width/height lines.
+    - colors: Optional list of colors for the markers (must match number of fitters).
+    """
+    
+    if not isinstance(fitters, list):
+        fitters = [fitters]
+
+    if ax is None:
+        ax = plt.gca()
+
+    if colors is None:
+        # Cycle through default matplotlib colors
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    for i, kmf in enumerate(fitters):
+        median = kmf.median_survival_time_
+        color = colors[i % len(colors)]
+        label = getattr(kmf, 'label', f'Group {i + 1}')
+
+        if short_lines:
+            # Short vertical and horizontal lines
+            ax.plot([median, median], [0, 0.51], linestyle=':', color=color, label=f'{label} Median: {median:.2f}')
+            ax.plot([0, median], [0.5, 0.5], linestyle=':', color=color)
+        else:
+            # Full lines across the plot
+            ax.axvline(median, linestyle='--', color=color, label=f'{label} Median: {median:.2f}')
+            ax.axhline(0.5, linestyle=':', color=color)
+
+    ax.legend()
+```
+
+Sometimes our categorical predictor variable contains three or more levels/categories. If so, here's how we can adapt the log-rank test to handle that.
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+## Visualising 3+ curves
+
+Once again, we'll use our `hospital_stays` dataset.
+
+We're going to focus on a different categorical predictor: `hospital_type`. There are three categories: `public`, `private` and `teaching` hospitals.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, read hosp_stays}
+hospital_stays <- read_csv("data/hospital_stays.csv")
+
+head(hospital_stays)
+```
+
+## Python
+
+```{python, load hosp_stays}
+hospital_stays = pd.read_csv("data/hospital_stays.csv")
+
+hospital_stays.head()
+```
+:::
+
+Creating stratified survival curves works precisely the same way for three (or more) curves as it did for two:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r}
+hosp_type <- survfit(Surv(time, discharged) ~ hospital_type, hospital_stays)
+
+ggsurvplot(hosp_type,
+           conf.int=TRUE,
+           surv.median.line = "hv")
+
+hosp_type
+```
+
+## Python
+
+It's perfectly valid to construct and save each fitted object one at a time (this is what we did last chapter with two curves).
+
+However, from a coding perspective, it's more efficient to use a `for` loop. On each iteration of the loop, we pick the next group in `hospital_type`, and fit and plot a Kaplan-Meier curve for that group, with a median marker. They are all layered on top of each other on the same plot.
+
+Especially in situations where you've got a lot of different groups, this is much more concise!
+
+```{python}
+T = hospital_stays["time"]
+E = hospital_stays["discharged"]
+
+# Set up plot
+fig, ax = plt.subplots()
+kmf = KaplanMeierFitter()
+
+# Loop through each group
+for name, grouped_df in hospital_stays.groupby("hospital_type"):
+  kmf.fit(durations=grouped_df["time"],
+          event_observed=grouped_df["discharged"],
+          label=str(name))
+  kmf.plot_survival_function(ax=ax)
+  add_median_markers(kmf, colors="k", ax = ax)
+
+plt.show()
+```
+:::
+
+On visualisation, it seems that the `public` and `teaching` hospitals have quite similar medians, while in the `private` hospital, there's a notably shorter expected length of stay.
+
+## Running a log-rank test
+
+It looks like there might be a difference, based on the curves - but is it significant?
+
+::: {.panel-tabset group="language"}
+## R
+
+Once again, we can make use of the `survdiff` function, exactly as we did for two curves (it doesn't matter how many groups we have here!).
+
+```{r, long-rank test for hospital type}
+survdiff(Surv(time, discharged) ~ hospital_type, hospital_stays)
+```
+
+## Python
+
+We're going to use the `multivariate_log_rank` function.
+
+It takes three arguments, which are the three relevant columns of our dataframe: the column of times/durations, the column corresponding to our categorical predictor, and the column that records whether or not the event of interest was observed.
+
+```{python, log-rank for hosp_type}
+from lifelines.statistics import multivariate_logrank_test
+
+# Run the log-rank test
+results = multivariate_logrank_test(hospital_stays["time"], hospital_stays["hospital_type"], hospital_stays["discharged"])
+
+results.print_summary()
+```
+:::
+
+::: callout-caution
+#### What does this significant p-value tell us?
+
+If a two-group log-rank test from last chapter is the analogue of a two-sample t-test, then a log-rank test with 3+ groups is the analogue of a one-way ANOVA.
+
+The **null hypothesis** in our multi-group log-rank test is that all of the different groups have all been drawn from the same underlying population. In other words, in the population as a whole, their survival curves are identical.
+
+This means that our **alternative hypothesis** is that at least one group is different from the others. But, as with a one-way ANOVA, we might need to follow up with some post hoc testing.
+:::
+
+### Post hoc testing
+
+If we want to follow up to find out which of the groups are different from each other, then we need to perform pairwise tests (i.e., compare each pair of curves to each other one at a time).
+
+It's only appropriate to run these post hoc tests **if the original log-rank test was significant**.
+
+::: {.panel-tabset group="language"}
+## R
+
+There is a dedicated `pairwise_survdiff` function for this purpose.
+
+Notice that we have a new argument to specify: the `p.adjust.method`. 
+
+I recommend using either the `holm` or `bonferroni` method here, but if you want to be more liberal, you can pick `BH` (Benjamini-Hochberg) instead.
+
+```{r, hosp type post hoc test}
+pairwise_survdiff(Surv(time, discharged) ~ hospital_type, hospital_stays, p.adjust.method = "holm")
+```
+
+## Python
+
+The `pairwise_logrank_test` function works just like the `multivariate_logrank_test` in terms of its syntax, with the same arguments:
+
+```{python, post hoc for hosp type}
+from lifelines.statistics import pairwise_logrank_test
+
+pairwise_results = pairwise_logrank_test(hospital_stays["time"], hospital_stays["hospital_type"], hospital_stays["discharged"])
+
+pairwise_results.print_summary()
+```
+:::
+
+From this post hoc testing, we can see that the teaching and public hospitals don't seem to differ significantly from one another, but the private school differs significantly from them both.
+
+This implies (in conjunction with the survival curves shown above) that the private hospitals are the "unusual" group, being much quicker to discharge their patients. We can, of course, theorise as to why this might be the case.
+
+## Summary
+
+The log-rank (Mantel-Cox) test can be extended to compare three or more curves. 
+
+This is analogous to a one-way ANOVA in regular linear modelling, and tests the null hypothesis that all groups have come from the same underlying population.
+
+::: callout-tip
+#### Key Points
+
+-   The null hypothesis of a 3+ group log-rank test is that all groups share the same survival curve in the underlying population
+-   If the initial log-rank test is significant, pairwise post hoc testing can be performed to identify which group(s) are distinct from one another
+:::

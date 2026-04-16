@@ -61,7 +61,7 @@ def add_median_markers(fitters, ax=None, short_lines=True, colors=None):
     ax.legend()
 ```
 
-In this chapter, we'll look into how, when and why to use the log rank test to compare stratified (grouped) survival curves to one another.
+In this chapter, we'll look into how, when and why to use the log-rank test to compare stratified (grouped) survival curves to one another.
 
 ## Libraries and functions
 
@@ -97,13 +97,13 @@ We use this test in situations where we have a **single categorical predictor** 
 
 You might find it useful to think of the log-rank test as an analogue of a two-sample t-test, but for time-to-event data specifically.
 
-The log-rank test is a null hypothesis significance test:
+The null hypothesis:
 
--   Our null hypothesis is that our two groups don't differ in how likely they are to experience the event over time
+-   The two groups don't differ in how likely they are to experience the event over time;
 
--   Or, in other words: in the underlying population, the **true survival curves are identical**
+-   i.e., in the underlying population, the **true survival curves are identical.**
 
--   So, if our p-value falls under the significance threshold, our data are very unlikely to have occurred just by chance, giving some evidence that a difference does exist
+So, if our p-value falls under the significance threshold, our data are very unlikely to have occurred just by chance, giving some evidence that a difference does exist
 
 ## Assumptions of a log-rank test
 
@@ -111,7 +111,7 @@ Like all statistical tests, before we jump in and start calculating things, we n
 
 If these aren't met, the log-rank test won't actually help us answer our research question.
 
-### Assumption 1: Independent observations
+### Assumption 1: Independent observations {#sec-independence}
 
 An "observation" = a unique row in the raw dataset, representing a unique individual in the study.
 
@@ -121,7 +121,7 @@ Common sources of non-independence would include:
 
 -   Repeated measures (recording multiple rows/events of interest per individual)
 -   Matched/paired designs
--   Natural "clusters" or "nesting", e.g.,: patients within hospitals, or students within schools
+-   Natural "clusters" or "nesting", such as patients within hospitals, or students within schools
 -   Genetic relatedness, e.g., using animals from the same litter
 
 ::: {.callout-tip collapse="true" appearance="minimal" icon="false"}
@@ -142,7 +142,7 @@ You may need to consider something like a mixed effects Cox regression model. Th
 
 The likelihood of censoring should not be related to the likelihood of experiencing the event of interest.
 
-Phrased another way: the individuals who are censored are assumed to have had the same underlying time-to-event distribution as those who weren't censored, if they had remained in the study.
+Phrased another way: the individuals who are censored are assumed to have had the same underlying time-to-event distribution if they had remained in the study, i.e., the same likelihood of experiencing the event, as those who weren't censored.
 
 ::: {.callout-tip collapse="true" appearance="minimal" icon="false"}
 #### Checking for non-informative censoring
@@ -173,7 +173,7 @@ There a handful of methods available to you:
 -   Creating log-log plots; you want the lines to be roughly parallel
 -   Checking the Schoenfeld residuals
 
-We'll unpack some of these methods in more detail in later chapters when we look at Cox regression, where propotional hazards is more of a formal assumption.
+We'll unpack some of these methods in more detail in later chapters when we look at Cox regression, where proportional hazards is more of a formal assumption.
 :::
 
 ::: {.callout-warning collapse="true" appearance="minimal" icon="false"}
@@ -259,9 +259,9 @@ plt.show()
 ```
 :::
 
-We determined that the median survival times for surgical (13.5 days) and non-surgical (7 days) patients were different. This indicates that surgical patients spend longer in hospital on average.
+We determined that the median survival times for surgical and non-surgical patients weren't identical. Surgical patients spend longer in hospital on average.
 
-Now, let's add a p-value to our weight of evidence, to see whether that difference is significant.
+Now, let's add a p-value to our weight of evidence, to see whether that difference is statistically significant.
 
 ::: {.panel-tabset group="language"}
 ## R
@@ -306,7 +306,11 @@ results = logrank_test(T[surg], T[~surg], E[surg], E[~surg])
 results.print_summary()
 ```
 
-You can access the exact p-value with `results.p_value`.
+You can access the exact p-value with `results.p_value`:
+
+```{python, extract p for surgery log-rank}
+results.p_value
+```
 :::
 
 A chi-square ($\chi^2$) statistic has been calculated to summarise the difference between the two groups.
@@ -403,7 +407,7 @@ This suggests that the likelihood of seeing curves with this much difference (or
 
 In other words: the small difference we're observing is quite likely to have happened by chance.
 
-Last but not least, let's visualise the curves to help us contexualise the p-value a little better:
+Last but not least, let's visualise the curves to help us contextualise the p-value a little better:
 
 ::: {.panel-tabset group="language"}
 ## R
@@ -487,7 +491,7 @@ Chances are that if you're running a log-rank test, you'll likely want to report
 
 ## Summary
 
-The most common method for comparing two curves is known as the log rank test (or more formally, the Mantel-Cox test).
+The most common method for comparing two survival curves is known as the log rank test (or more formally, the Mantel-Cox test).
 
 It's analogous to a two-sample t-test in regular linear modelling. It tests the null hypothesis that, in the underlying population, the two groups have an identical survival curve.
 
