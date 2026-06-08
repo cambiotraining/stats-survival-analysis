@@ -20,7 +20,11 @@ import shutup;shutup.please()
 
 This section of the course materials explains the motivation for survival analysis, known more generally as time-to-event analysis, as a unique or specialised statistical method.
 
-We'll get familiar with what makes time-to-event data different from other datasets, and what we'll need to do to treat them differently.
+In survival analysis, the outcome variable is **time** (until the event of interest occurs).
+
+Now, we could try to treat that as a continuous response and fit a linear model, but we would run into several issues. We'll start by unpacking those first in this chapter, to explain why we need specialist statistical models.
+
+Then, we'll have a look at some example datasets to focus on how they need to be formatted.
 
 ## Libraries and functions
 
@@ -48,24 +52,20 @@ from lifelines import KaplanMeierFitter
 :::
 ::::
 
-Why do we require specialist modelling techniques for these sorts of data?
-
-The response variable is always "time until \[insert event here\]".
-
-We could try to treat that as a continuous response and fit a linear model, but we would run into issues, for a couple of reasons - which we'll unpack in more detail now.
-
 ## Skewed & positive data
 
 Firstly, the distribution of durations/times to event does not match what we would expect in a classic linear model. Specifically:
 
--   Values are bounded at/cannot be below 0
--   There will be a lot of short durations, and a smaller number of very long ones, creating skew
+- Values are bounded at/cannot be below 0
+- There will be a lot of short durations, and a smaller number of very long ones, creating skew
 
 ### Hospital stays dataset
 
 Let's have a look at this unusual distribution in practice, with a real time-to-event dataset.
 
-This dataset is from a clinical study in which the time to discharge from a hospital was measured for a number of patients. There are 200 patients in total in the dataset.
+This dataset is from a clinical study that tracked 200 patients for up to 30 days following hospital admission, to record whether they were discharged and how long it took.
+
+For each patient, the researcher recorded `age`, `sex`, whether they had `surgery` during their stay, and whether they had a `weekend_admission` (versus a weekday), to assess whether any of these factors have an impact on how quickly they were discharged.
 
 ::: {.panel-tabset group="language"}
 ## R
@@ -135,18 +135,18 @@ The most common form of censoring in time-to-event data is right-censoring. This
 
 This tends to happen because either:
 
--   The study ends before the event happens
--   The individual drops out of the study or is lost to follow-up
--   The individual experiences some competing event (the event of interest becomes impossible)
+- The study ends before the event happens
+- The individual drops out of the study or is lost to follow-up
+- The individual experiences some competing event (the event of interest becomes impossible)
 
 Importantly, we don't know if or when the individual ever experiences the event after we stop tracking them. All we know is that they didn't experience it while we were observing.
 
 For example:
 
--   In a study assessing time to **failure of pacemaker** devices, a patient dies of other causes (competing event occurs) before their device fails.
--   A person gives up waiting at a bus stop before the **next bus arrives** (i.e., the "study" ends). There is no way of knowing if/when a bus next arrived at the stop.
--   While monitoring participants for signs of **cognitive decline**, a participant decides to withdraw their consent from the study (drops out).
--   Meanwhile, another participant being monitored for cognitive decline shows no indication by the time the longitudinal study ends; there's no way if knowing if/when their cognitive scores might have dropped after the study ended.
+- In a study assessing time to **failure of pacemaker** devices, a patient dies of other causes (competing event occurs) before their device fails.
+- A person gives up waiting at a bus stop before the **next bus arrives** (i.e., the "study" ends). There is no way of knowing if/when a bus next arrived at the stop.
+- While monitoring participants for signs of **cognitive decline**, a participant decides to withdraw their consent from the study (drops out).
+- Meanwhile, another participant being monitored for cognitive decline shows no indication by the time the longitudinal study ends; there's no way if knowing if/when their cognitive scores might have dropped after the study ended.
 
 ![Examples of right-censoring](images/right-censoring-examples.png)
 
@@ -156,9 +156,9 @@ Interval-censoring is the next most common form of censoring. It happens when we
 
 This usually happens in studies where we aren't constantly observing individuals. For example:
 
--   Every 3 months, children are tested to see whether they have reached a minimum level of **reading comprehension**. A child fails the test at the 6 month mark and passes at the 9 month mark of the study; we know that they reached minimum reading comprehension between those assessments, but not precisely when.
--   Each morning, greenhouse staff check to see if **seeds have germinated**. If they see a new seedling one morning, we don't know exactly when it germinated, only that it must've been sometime since yesterday morning and this morning.
--   Post-surgery, patients' **vision recovery** is assessed weekly, and they wear an eye-patch in between assessments. At week 2, their vision is blurry; at week 3, their vision is clear. Their doctor can't be sure exactly when in the last week, their vision fully recovered.
+- Every 3 months, children are tested to see whether they have reached a minimum level of **reading comprehension**. A child fails the test at the 6 month mark and passes at the 9 month mark of the study; we know that they reached minimum reading comprehension between those assessments, but not precisely when.
+- Each morning, greenhouse staff check to see if **seeds have germinated**. If they see a new seedling one morning, we don't know exactly when it germinated, only that it must've been sometime since yesterday morning and this morning.
+- Post-surgery, patients' **vision recovery** is assessed weekly, and they wear an eye-patch in between assessments. At week 2, their vision is blurry; at week 3, their vision is clear. Their doctor can't be sure exactly when in the last week, their vision fully recovered.
 
 ![Examples of interval-censoring](images/interval-censoring-examples.png)
 
@@ -184,11 +184,11 @@ hospital_stays.head(21)
 
 At minimum, the dataframe must contain a column for the `time` (or "duration followed"), and a column to record whether the `event` occurred (binary).
 
--   So, if a row records a duration of `12` and an event of `1`, this means that the event of interest (discharge from hospital) occurred at 12 days.
+- So, if a row records a duration of `12` and an event of `1`, this means that the event of interest (discharge from hospital) occurred at 12 days.
 
--   If a row records a duration of `30` and an event of `0`, this means that the individual did not experience the event, and was instead censored, at 30 days. This means they dropped out of the study for some reason (e.g., died or withdrew consent).
+- If a row records a duration of `30` and an event of `0`, this means that the individual did not experience the event, and was instead censored, at 30 days. This means they dropped out of the study for some reason (e.g., died or withdrew consent).
 
--   Some patients have a duration of `60.5` days and an `event` marked `0`, because they were right-censored due to the study ending.
+- Some patients have a duration of `60.5` days and an `event` marked `0`, because they were right-censored due to the study ending.
 
 #### Events & individuals
 
@@ -250,9 +250,9 @@ These features include censoring (a type of missing data), and values of the res
 ::: callout-tip
 #### Key Points
 
--   The response variable in a time-to-event analysis is the duration or time until an event of interest (e.g., death) occurred
--   This response variable is always positive (\>0) and typically right-skewed
--   Some data points are censored, meaning that we don't know if/when the event of interest occurred
--   The most common type of censoring is right-censoring, when an individual has not experienced the event of interest but is no longer followed by researchers (due to the end of the study, or dropping out)
--   The other common type of censoring is interval-censoring, when the researcher does not know the precise time an event occurred, but instead only knows the window/interval
+- The response variable in a time-to-event analysis is the duration or time until an event of interest (e.g., death) occurred
+- This response variable is always positive (\>0) and typically right-skewed
+- Some data points are censored, meaning that we don't know if/when the event of interest occurred
+- The most common type of censoring is right-censoring, when an individual has not experienced the event of interest but is no longer followed by researchers (due to the end of the study, or dropping out)
+- The other common type of censoring is interval-censoring, when the researcher does not know the precise time an event occurred, but instead only knows the window/interval
 :::

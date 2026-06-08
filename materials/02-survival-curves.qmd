@@ -52,7 +52,9 @@ import matplotlib.pyplot as plt
 :::
 ::::
 
-As our worked example in this chapter, we'll use a dataset called `hospital_stays`.
+## Producing a single survival curve
+
+As our worked example in this chapter, we'll use the `hospital_stays` dataset introduced in the previous chapter. For now, we'll focus just on the `sex` and `surgery` categorical predictors.
 
 ::: {.panel-tabset group="language"}
 ## R
@@ -71,14 +73,6 @@ hospital_stays = pd.read_csv("data/hospital_stays.csv")
 hospital_stays.head()
 ```
 :::
-
-In this clinical study, patients were tracked for up to 30 days following hospital admission, to record whether or not they were discharged (and if so, which day following admission).
-
-For each patient, the researcher recorded `age`, `sex`, whether they had `surgery` during their stay, and whether they had a `weekend_admission` (versus a weekday), to assess whether any of these factors have an impact on how quickly they were discharged.
-
-For the purposes of this chapter, we're going to focus just on the `sex` and `surgery` categorical predictors.
-
-## Producing a single survival curve
 
 Let's start by visualising our `hospital_stays` data with a single survival curve.
 
@@ -164,9 +158,9 @@ ggsurvplot(hosp_curve)
 
 You can change different aspects of the plot's appearance with the various arguments of the function.
 
--   The `colour` and `palette` arguments let you control the colour(s)
--   You can edit the axis labels with `ylab` and `xlab`
--   Confidence intervals can (and should!) be explicitly added with the `conf.int` argument
+- The `colour` and `palette` arguments let you control the colour(s)
+- You can edit the axis labels with `ylab` and `xlab`
+- Confidence intervals can (and should!) be explicitly added with the `conf.int` argument
 
 ```{r, survcurv hosp optional args}
 ggsurvplot(hosp_curve,
@@ -190,9 +184,9 @@ By default, this will show nothing except the curve with confidence intervals.
 
 However, you can customise your plot by:
 
--   Adding markers for censored observations (and changing what those markers look like)
--   Changing the colour and line style for the survival curve
--   Editing the x and y axis labels, and adding a title
+- Adding markers for censored observations (and changing what those markers look like)
+- Changing the colour and line style for the survival curve
+- Editing the x and y axis labels, and adding a title
 
 You can also explicitly set the `ci_show` argument to `True` (though this is the default behaviour).
 
@@ -644,6 +638,8 @@ You might be using Kaplan-Meier curves like these simply to visualise, explore a
 If so, here are some best practices to follow, to be clear and transparent with your figure(s).
 
 +---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|   |                                                                                                                                                                                                     |
++===+=====================================================================================================================================================================================================+
 | ✓ | **Always include confidence intervals**                                                                                                                                                             |
 +---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |   | At best, a survival curve without confidence intervals is just a bit less informative; at worst, it's actively disingenuous.                                                                        |
@@ -678,8 +674,8 @@ One of the most common ways to visualise time-to-event (survival) data is via Ka
 ::: callout-tip
 #### Key Points
 
--   A Kaplan-Meier survival curve plots `time` against the estimated `survival probability` (calculated using the Kaplan-Meier estimator)
--   You can fit a Kaplan-Meier curve for the entire dataset, or stratify by one or more categorical predictors
--   You should always include confidence intervals for your curves
--   Other helpful features include the median survival time and risk tables/cumulative event tables
+- A Kaplan-Meier survival curve plots `time` against the estimated `survival probability` (calculated using the Kaplan-Meier estimator)
+- You can fit a Kaplan-Meier curve for the entire dataset, or stratify by one or more categorical predictors
+- You should always include confidence intervals for your curves
+- Other helpful features include the median survival time and risk tables/cumulative event tables
 :::

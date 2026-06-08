@@ -65,7 +65,7 @@ In this chapter, we'll look into how, when and why to use the log-rank test to c
 
 ## Libraries and functions
 
-:::: {.callout-note collapse="true"}
+:::: {.callout-note collapse="true"}−3.66569 − 0.51659 + 0.15680 × 20
 ## Click to expand
 
 ::: {.panel-tabset group="language"}

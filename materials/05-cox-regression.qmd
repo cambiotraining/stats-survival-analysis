@@ -54,15 +54,17 @@ from lifelines.statistics import pairwise_logrank_test
 
 ## When do you need Cox regression?
 
-The log-rank test is useful to make comparisons between two or three survival curves, i.e., to ask whether two or more groups are significantly different to each other in terms of their survival, but it has its limits.
+So far our focus has been on the log-rank test, which is useful to make comparisons between two or three survival curves.
 
-Cox regression is more flexible and can be used to build more complex models.
+However, it has its limits.
+
+Cox regression is more flexible and can be used to build more complex models than a log-rank test can manage.
 
 You would need to use Cox regression (rather than a log-rank test) when:
 
--   You want to make predictions about survival based on values of the predictor/independent variable(s)
--   You have more than one predictor variable
--   Your predictor variable(s) are continuous, rather than categorical
+- You want to make predictions about survival based on values of the predictor/independent variable(s)
+- You have more than one predictor variable
+- Your predictor variable(s) are continuous, rather than categorical
 
 ## The basic idea
 
@@ -74,11 +76,9 @@ Conceptually, it's a bit like a generalised linear model: a linear model that ha
 
 ### A little more information
 
-For more information and theory, you can check out the drop-down boxes below.
+For more of the mathematical theory, you can check out the drop-down boxes below.
 
-This level of understanding is **not necessary** for being able to apply Cox regression.
-
-If you prefer just to think about data and application, you can skip this and move on to the next section.
+This level of understanding is **not necessary** for being able to apply Cox regression. If you prefer just to think about data and implementation, you can skip this and move on to the next section.
 
 It might be helpful, however, to return to some of these ideas when the concept of proportional hazards comes up later in the course.
 
@@ -256,7 +256,7 @@ p_cumhaz <- ggplot(cumhaz_df, aes(x = t, y = cumhaz, color = type)) +
        color = "Type") +
   theme_classic()
 
-p_hazard + p_cumhaz + plot_layout(guides = "collect")
+p_hazard + p_cumhaz + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 :::
 
@@ -284,7 +284,7 @@ p_surv <- ggplot(surv_df, aes(x = t, y = survival, color = type)) +
 
 # Print plots
 
-p_cumhaz + p_surv + plot_layout(guides = "collect")
+p_cumhaz + p_surv + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
 Notice how the quicker we build up cumulative hazard on the left, the faster the survival function drops towards 0 on the right.
@@ -310,7 +310,7 @@ The part you will likely recognise is inside the brackets, and it's called the l
 In this case, the non-linear part of the equation is quite simple: we're raising Euler's number $e$ to the power of our linear predictor (known as exponentiating).
 :::
 
-## A simple Cox model
+## Fitting a simple Cox model
 
 We'll return to our `hospital_stays.csv` dataset.
 
@@ -330,7 +330,7 @@ In this chapter, we'll keep things simple by fitting a Cox regression with just 
 ::: {.panel-tabset group="language"}
 ## R
 
-```{r}
+```{r, create cox_hosp model}
 cox_hosp <- coxph(Surv(time, discharged) ~ age,
                   data = hospital_stays)
 
@@ -342,307 +342,209 @@ The syntax is identical to the `survfit` function we used in previous chapters: 
 
 There! You've just fitted a Cox regression model to a time-to-event dataset.
 
-### Unpacking the output
+We can see that we're given some basic information to start with. This includes the total number of individuals, and the total number of events. The difference between these two numbers tells us how many individuals were censored in our study (in this case, $210-189 = 21$ were censored).
 
-Now, let's have a closer look at our model.
+Underneath that is where we start to get into the interpretation.
 
-We are told the total number of individuals, and the total number of events. The difference between these two numbers tells us how many individuals were censored in our study (in this case, $210-189 = 21$).
+## The hazard ratio
 
-##### Information about `age`
+We've been provided with a row of quantities corresponding to our single predictor variable `age`. The most important one to focus on is the hazard ratio, which is the `exp(coef)` value.
 
-Then, we get two rows of quantities corresponding to our single predictor variable `age`.
+It's not essential to understand how it's calculated, but if you're curious, you can open the drop-down below for more information.
 
-If we had more predictors, we would get these quantities for each of them.
+\[INSERT DROP DOWN\]
 
-+-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Quantity                                |                          | What is it?                                                                                                                                                                    |
-+=========================================+==========================+================================================================================================================================================================================+
-| Log hazard ratio                        | `coef`                   | This is the raw beta coefficient for our `age` predictor. It's on the log scale of the model, so the size of this value is hard to interpret.                                  |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | However, it *can* help to tell us about the direction of the effect.                                                                                                           |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | Generally speaking:                                                                                                                                                            |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | -   Positive log hazard ratio means higher hazard and worse survival                                                                                                           |
-|                                         |                          | -   Negative hazard ratio means lower hazard and better survival                                                                                                               |
-|                                         |                          | -   Log hazard ratios close to zero imply little effect of the predictor on survival                                                                                           |
-+-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Hazard ratio                            | `exp(coef)`              | This is the exponentiated version of the log hazard ratio - in other words, it is no longer on a log scale, but instead on a real-world scale we can interpret.                |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | It's the most commonly reported value in a survival analysis.                                                                                                                  |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | It tells us about the size of the effect of our predictor variable(s) on survival.                                                                                             |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | **You should be paying closest attention to this value.**                                                                                                                      |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | When:                                                                                                                                                                          |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | -   HR \> 1, risk is increased as the predictor increases                                                                                                                      |
-|                                         |                          | -   HR \< 1, risk is decreased as the predictor increases                                                                                                                      |
-|                                         |                          | -   HR = 1, no effect of the predictor changing                                                                                                                                |
-+-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Inverse hazard ratio                    | `exp(-coef)`             | This quantity is mainly useful when the hazard ratio is \< 1.                                                                                                                  |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | For example, when `exp(coef) = 0.5`, `exp(-coef) = 2` (because of how exponentials and inverses work), and we might talk about one group having twice the hazard of the other. |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | It doesn't provide any new information, though.                                                                                                                                |
-+-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Standard error and confidence intervals | `se(coef)`               | These quantities tell you about the level of uncertainty in the estimate of the coefficient.                                                                                   |
-|                                         |                          |                                                                                                                                                                                |
-|                                         | `lower .95`, `upper .95` | The bigger the standard error, and the wider the confidence intervals, the less certain the estimate is, and the less you should trust it.                                     |
-+-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Individual variable significance test   | `z` and `Pr(>|z|)`       | For each predictor variable in a Cox model (in the example above, we've only included one predictor), we will get a separate z-score and associated p-value.                   |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | **Generally, you should ignore these values.**                                                                                                                                 |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | This p-value is assuming the null hypothesis that $\beta = 0$, also equivalent to $exp(\beta) = 1$.                                                                            |
-|                                         |                          |                                                                                                                                                                                |
-|                                         |                          | However, we will talk later about a different way to test significance that is preferred.                                                                                      |
-+-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+The most important thing to know is how to interpret this hazard ratio.
 
-##### Information about the model
+In the context of a continuous predictor variable, as we have here, the hazard ratio measures the change in the instantaneous risk of an event occurring for each one-unit increase in that variable, assuming everything else stays constant.
 
-Underneath that, we get some information about our model and its quality:
+In other words, for each additional year of `age`, how much does the "risk" of being discharged from hospital change? When:
 
-1.  Concordance
-2.  Global significance tests
+- HR = 1, this implies that the predictor has no effect on the risk
+- HR \> 1, risk is increased as the predictor increases
+- HR \< 1, risk is decreased as the predictor increases
 
-::: callout-note
-#### Concordance
+In our example here, our hazard ratio is 0.9483. This tells us that each one-year increase in age is associated with a "risk" of hospital discharge that is 0.9483 times as large (about 5.2% lower) than that of someone one year younger. (So, being younger gets you discharged a tiny bit quicker.)
 
-This is a measure of goodness-of-fit, or predictive accuracy. It's analogous (but not quite the same as) $R^2$ in linear models.
+::: {.callout-warning appearance="minimal" icon="false"}
+#### How did I calculate that % change?
 
-It is calculated by taking each possible pair of individuals in the dataset and ranking their survival times, and then comparing it to what the model predicted risk to be.
+Like so:
 
-So, if the model predicted that patient A had a higher risk than patient B of experiencing the event based on their values of the predictor variable(s), and patient A also experienced the event sooner than patient B in reality, this would be a "concordant" pair.
+$(0.9483 - 1) \times 100 = -5.17$
 
-If the model gets everything completely perfect, we would see a concordance of 1. If the model is doing no better than random guessing, we would see a concordance of 0.5.
+The general formula is:
 
-A concordance of around 0.7 as we see in our model above suggests that for a randomly selected pair of patients, the model correctly predicts who is discharged first 70% of the time.
+$(HR - 1) \times 100$
 
-In other words, concordance measures how good the model is at ordering individuals in terms of when they are likely to experience the event of interest.
+If the answer is positive, that means an increase in hazard; if it's negative, that's a decrease.
 :::
 
-::: callout-note
-#### Global significance tests
+A 5.2% change might not seem like very much, but when we're dealing with continuous predictors, hazard ratios that don't seem far away from 1 can occur quite often. Remember that we're only looking a single unit increase in the predictor (so just one year, in this example).
+
+The effect will compound over multiple years; if we wanted to look at a 10-year age difference, for example, we can do that by raising our hazard ratio to a power of 10:
+
+$0.9483^{10} \approx 0.59$
+
+meaning that a patient who is 10 years younger has an approximately 59% higher chance of being discharged than an otherwise similar, but older, patient.
+
+That feels more like a "result", don't you think?
+
+### How confident are we?
+
+We also want to pay attention to the confidence intervals around our hazard ratio. The wider the interval, the less confident we should feel about the estimate of our confidence interval, and the less stock we should put in its value.
+
+In our case, our interval is quite narrow:
+
+$0.9597 - 0.937 = 0.0227$
+
+and crucially, our confidence interval doesn't "cross over" with 1 (remember that when the ratio = 1, this implies no effect of the predictor).
+
+So overall, we can probably be pretty happy with our hazard ratio estimate.
+
+## Global significance tests
+
+Underneath the information about the `age` predictor, we get some information about the model as a whole. The first number, concordance, will be discussed in the next chapter; here, we'll focus on the global significance tests.
 
 These tests are looking at the model as a whole. When we have multiple predictor variables, these global significance tests will give quite different results to significance tests of individual predictors.
 
-There are three different methods for doing this: a Wald test, a likelihood ratio test, and a log-rank/score test.
+There are three different methods for doing this:
+
+- a Wald test
+- a likelihood ratio test
+- a log-rank/score test
 
 The Wald test doesn't work great when the sample size is small, and/or the coefficients are large. The score (log-rank) test is often better than the Wald test, but it doesn't use as much information as the likelihood ratio test does.
 
 This means that **the best option of the three is the likelihood ratio test**.
 
 In the LRT, we are comparing our model against a null model, i.e., a model that contains no predictors at all. So we are asking whether our set of predictors, overall, does a better job of explaining our data than having no predictors at all.
-:::
 
-## Assumptions
+## Exercises
 
-Like any type of statistical model, a Cox regression makes assumptions about the data and experimental design.
+### Lung cancer {#sec-exr_lung}
 
-Some assumptions are carried through from regular linear modelling and will be familiar; others are new for survival data.
+:::: callout-exercise
+{{< level 2 >}}
 
--   Independent observations
--   Linearity
--   Proportional hazards
--   Non-informative censoring
+For this example, we'll use the `lung` dataset inbuilt into the `survival` package.
 
-The independence assumption was discussed in \[Section-@sec-independence\] of a previous chapter.
-
-The final two assumptions are unpacked later on in subsequent chapters, with some discussion/pointers on what you can do if they're not met.
-
-For this chapter, we will focus just on linearity.
-
-### Linearity
-
-Although a Cox model is not itself linear, it does contain a linear bit in it, which we are transforming/embedding inside a non-linear equation. And we do still need that linear bit to actually be linear.
-
-To put it more mathematically: we know that our predictor variables will not have a linear relationship directly with the hazard, or with the time-to-event; but they should have a linear relationship with the *log* of the hazard.
-
-So, if you plotted the predictor variable against the log hazard, we expect a straight line.
-
-We only need to concern ourselves with linearity for continuous predictors (not categorical ones).
-
-#### Martingale residuals plots
-
-The most common method for checking linearity in Cox regression is by plotting something called the Martingale residuals.
-
-We do this separately for each continuous predictor. So, if your model contains three continuous predictor variables, you would need three separate Martingale plots.
-
-You don't really need to know what Martingale residuals are, just how to interpret the plot.
-
-::: {.callout-note collapse="true"}
-#### What should the Martingale plot look like?
-
-If the linearity assumption holds for a continuous predictor, then the plot will show a roughly straight (linear) trend line. There might be some wiggles and bumps, but they aren't a systematic/clear trend.
-
-Another way to phrase it is that we want the plot to have a monotonic trend. This means that the gradient of the line is either always decreasing, or always increasing (i.e., the line doesn't start going one direction and then change to go another).
-
-Here are two examples of "good" Martingale plots.
-
-These are perhaps the best you're likely to see, especially the first one. Notice how the trend lines aren't perfectly straight in either case, but the wobbles and bumps look just like random noise, rather than anything "real".
-
-```{r, good martingale plots and data sim}
-#| echo: false
-#| message: false
-#| warning: false
-
-n <- 300
-x_good <- rnorm(n)
-
-# True linear effect
-beta <- 0.8
-linpred <- beta * x_good
-
-# Simulate survival times (exponential baseline hazard)
-time_good <- rexp(n, rate = exp(linpred))
-status_good <- rbinom(n, 1, 0.8)  # some censoring
-
-data_good <- data.frame(time = time_good,
-                        status = status_good,
-                        x = x_good)
-
-x_bad <- rnorm(n)
-
-# Non-linear (quadratic) effect
-linpred_bad <- 1.2 * (x_bad^2)
-
-time_bad <- rexp(n, rate = exp(linpred_bad))
-status_bad <- rbinom(n, 1, 0.8)
-
-data_bad <- data.frame(time = time_bad,
-                       status = status_bad,
-                       x = x_bad)
-
-x_good2 <- rnorm(n)
-
-# Mostly linear, with a bit of noise
-linpred_good2 <- 0.7 * x_good2 + rnorm(n, sd = 0.3)
-
-time_good2 <- rexp(n, rate = exp(linpred_good2))
-status_good2 <- rbinom(n, 1, 0.75)
-
-data_good2 <- data.frame(time = time_good2,
-                         status = status_good2,
-                         x = x_good2)
-
-x_bad2 <- rnorm(n)
-
-# Mild non-linearity: linear + small quadratic term
-linpred_bad2 <- 0.6 * x_bad2 + 0.4 * (x_bad2^2)
-
-time_bad2 <- rexp(n, rate = exp(linpred_bad2))
-status_bad2 <- rbinom(n, 1, 0.75)
-
-data_bad2 <- data.frame(time = time_bad2,
-                        status = status_bad2,
-                        x = x_bad2)
-
-ggcoxfunctional(Surv(time, status) ~ x, data = data_good)
-ggcoxfunctional(Surv(time, status) ~ x, data = data_good2)
-```
-
-Below are two examples of "bad" plots.
-
-Again, the first is very exaggerated; the second is less extreme, but still has a clear turn in it that isn't just a random wiggle, but a systematic trend (in this case, a U-shape).
-
-In both of these cases, we would probably want to perform some kind of transformation for our predictor variable, because the linearity assumption is clearly violated.
-
-```{r, bad martingale plots}
-#| echo: false
-#| message: false
-#| warning: false
-#| 
-ggcoxfunctional(Surv(time, status) ~ x, data = data_bad)
-ggcoxfunctional(Surv(time, status) ~ x, data = data_bad2)
-```
-:::
-
-So, how are these Martingale residual plots produced?
+If you're having trouble loading it up, you can use the following code:
 
 ::: {.panel-tabset group="language"}
 ## R
+```{r, force lung dataset}
+#| message: false
+#| warning: false
 
-The `survminer` package comes built-in with a function for producing the Martingale residual plots.
-
-Here it is, applied to our continuous `age` predictor variable:
-
-```{r, martingale residuals plot}
-ggcoxfunctional(Surv(time, discharged) ~ age,
-                  data = hospital_stays)
+lung <- force(lung)
 ```
-
-This function automatically creates a plot for each of the continuous predictors specified. In our example we only have one, `age`.
-
-On each plot, there will be a trend line; we would like this line to be as close as possible to a single, straight trend line (like we would get in a simple linear regression).
-
-If the line has strong bends, wiggles or turning points (e.g., it is U-shaped or S-shaped) this is generally a sign that we need to transform our predictor variable before we include it in the model.
-
-Our line above is not perfectly straight, but it is always decreasing, with no super dramatic turns.
-
-This is a pretty good plot! It's likely that the linearity assumption is met.
 :::
 
-### Time-varying predictors
+This is a dataset about patients with advanced lung cancer, from the North Central Cancer Treatment Group. The event of interest is death.
 
-It's worth noting that all of the examples we've discussed in this course so far feature predictors that do not vary with time.
+This is a complex dataset with a lot of predictors. Key ones include:
 
-For example, whether a patient is male or female, or what age they were when they were admitted to hospital, does not change during the course of the time they're being observed.
+- `time`: survival time in days
+- `status`: whether the subject was censored; 1=censored, 2=dead (event occurred)
+- `age`: given in years
+- `wt.loss`: weight loss over the last six months (in pounds, lbs)
 
-In all of our examples, we are also assuming that the *effect* of the predictors on the probability of the event occurring also does not vary with time.
+For this exercise, you should try to answer the following questions using Cox regression and the hazard ratios:
 
-For example, we assume that a patient being male has the same effect on their chance to be discharged from hospital on day 1, as it does on day 30.
+1.  How much is the hazard increased by a 5-year age increase?
+2.  How much is the hazard increased by a 5lb weight loss?
+3.  Do the hazard ratios change for each predictor if you include them in a model simultaneously (versus a separate model for each)?
 
-These are two related, but distinct ideas:
-
--   Time-varying **predictors**
--   Time-varying **effects** of predictors
-
-There will be a bonus chapter later that addresses how to deal with situations where predictors vary with time.
-
-If the effect of a predictor varies with time, this will cause a violation of the proportional hazards assumption, mentioned above. Again, we will talk about this more in a subsequent chapter.
-
-## Comparing to the log-rank test
-
-So far in this chapter, we've used Cox regression to model continuous predictors, but it also works for categorical predictors too.
-
-Let's recreate one of the analyses from a previous chapter, where we performed a log rank test on the `hospital_stays` dataset, for the `surgery` predictor, and compare it to a Cox regression with `surgery` as a predictor.
+Note: before you get started, you will need to recode the `status` censoring variable, as it's been coded in a non-standard way in this dataset:
 
 ::: {.panel-tabset group="language"}
 ## R
-
-```{r, log rank vs cox regression}
-survdiff(Surv(time, discharged) ~ surgery, data = hospital_stays)
-
-cox_surgery <- coxph(Surv(time, discharged) ~ surgery,
-                  data = hospital_stays)
-
-summary(cox_surgery)
+```{r, recode lung censoring status}
+lung <- lung %>%
+  mutate(status = recode(status, `1`=0, `2`=1))
 ```
 :::
 
-The numbers are not identical, but pretty similar! This isn't an accident.
+::: callout-answer
+##### Age predictor
 
-In particular, the log rank test is effectively recreating the score test (at the bottom of the Cox regression output).
+Let's start by focusing on the `age` research question first.
 
-There are *tiny* differences in how the two tests calculate things, but they are achieving essentially the same thing.
+::: {.panel-tabset group="language"}
+## R
+```{r, lung survival by age}
+cox_lung_age <- coxph(Surv(time, status) ~ age, 
+                  data = lung)
 
-So the log rank test behaves a little bit like a special case of Cox regression, in the same way that a t-test is a special case of a linear model.
+summary(cox_lung_age)
+```
+:::
+
+The hazard ratio is the `exp(coef)`, 1.019. For each additional year of age, there is a modest increase in hazard (i.e., chance of death).
+
+Specifically, each additional year of age is associated with approximately a 1.9% increase in the instantaneous risk of death.
+
+If I want to know how this compounds over 5 years, I raise my hazard ratio to the power 5:
+
+$1.018897^5 = 1.098124$
+
+which corresponds to a 9.8% increase in hazard.
+
+##### Weight loss predictor
+
+Now let's look at the `wt.loss` predictor.
+
+::: {.panel-tabset group="language"}
+## R
+```{r, lung survival by wtloss}
+cox_lung_wt <- coxph(Surv(time, status) ~ wt.loss, 
+                  data = lung)
+
+summary(cox_lung_wt)
+```
+:::
+
+This is a more modest effect. With a hazard ratio of 1.001320, we're looking at around a 0.1% increase in hazard with each pound lost.
+
+Even if we look at how this stacks for a 5lb weight loss:
+
+$1.001320^5 = 1.006617$
+
+this is only a \~0.7% increase.
+
+##### Both predictors
+
+Finally, let's look at what happens when we include both predictors in the model simultaneously (without an interaction, to keep things simple).
+
+::: {.panel-tabset group="language"}
+## R
+```{r, lung survival by age and wtloss}
+cox_lung <- coxph(Surv(time, status) ~ age + wt.loss, 
+                     data = lung)
+
+summary(cox_lung)
+```
+::::
+
+Our hazard ratios haven't changed *very* much, but they are not identical.
+
+So: yes! Including both predictors together does change things (a bit).
+
+In later chapters, we'll look at models with multiple predictors. But if you're the type who likes thinking ahead, you can use what you already know about linear modelling to start thinking about *why* this change might've occurred, and whether our two-predictor model might be better.
+:::
+::::
 
 ## Summary
 
-A Cox model is more complex than a log-rank test, but also more flexible, and can be used for a wider variety of datasets.
+A Cox model is more complex than a log-rank test, but also more flexible, and can be used for a wider variety of datasets. Here, we've shown how it can be applied to a dataset with a single continuous predictor, but we'll add complexity in subsequent chapters.
 
-When interpreting a Cox model, we can look at individual predictors or the model as a whole. We should also be careful to consider and check the assumptions before drawing any final conclusions.
+When interpreting a Cox model, we can look at individual predictors or the model as a whole. The best metric to interpret is the hazard ratio.
 
 ::: callout-tip
 #### Key Points
 
--   Cox regression is used to model survival (time-to-event) data when we have a continuous predictor
--   It can also be used when we have multiple predictors, or to recreate a log-rank test for a single categorical predictor
--   In Cox regression, we predict a quantity called the "log hazard"
--   We can extract p-values in multiple ways from a Cox model, with different interpretations
--   Cox regression makes several assumptions about the dataset and the relationship between variables
--   One of these assumptions is about linearity, which we can test with Martingale residual plots
+- Cox regression can be used to model survival (time-to-event) data when we have a continuous predictor
+- In Cox regression, we are most interested in interpreting the hazard ratio, which tells us about the increase in hazard/risk as our predictor changes
+- We can also extract p-values in multiple ways from a Cox model, with slightly different interpretations
 :::

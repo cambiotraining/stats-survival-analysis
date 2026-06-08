@@ -61,6 +61,6 @@ If you think you should be added as an author, please get in touch with us.
 
 <!-- if there are no acknowledgements we can delete this section -->
 
-https://lifelines.readthedocs.io/en/latest/index.html 
+
 
 

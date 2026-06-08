@@ -58,9 +58,9 @@ If the log-rank test is like a two-sample t-test or one-way ANOVA, then Cox regr
 
 You would need to use Cox regression rather than a log-rank test when:
 
--   You want to make predictions about survival based on values of the predictor/independent variable(s)
--   You have more than one predictor variable
--   Your predictor variable(s) are continuous, rather than categorical
+- You want to make predictions about survival based on values of the predictor/independent variable(s)
+- You have more than one predictor variable
+- Your predictor variable(s) are continuous, rather than categorical
 
 ## The basic idea
 
@@ -160,6 +160,57 @@ ggplot(cox_hosp_tidy,
 ```
 :::
 
+### Information about the predictor
+
+Then, we get two rows of quantities corresponding to our single predictor variable `age`.
+
+If we had more predictors, we would get these quantities for each of them.
+
++-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Quantity                                |                          | What is it?                                                                                                                                                                    |
++=========================================+==========================+================================================================================================================================================================================+
+| Log hazard ratio                        | `coef`                   | This is the raw beta coefficient for our `age` predictor. It's on the log scale of the model, however, so its exact size is hard to interpret.                                 |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | However, it *can* help to tell us about the direction of the effect.                                                                                                           |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | Generally speaking:                                                                                                                                                            |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | - Positive log hazard ratio means higher hazard and worse survival                                                                                                             |
+|                                         |                          | - Negative hazard ratio means lower hazard and better survival                                                                                                                 |
+|                                         |                          | - Log hazard ratios close to zero imply little effect of the predictor on survival                                                                                             |
++-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Hazard ratio                            | `exp(coef)`              | This is the exponentiated version of the log hazard ratio - in other words, it is no longer on a log scale, but instead on a real-world scale we can interpret.                |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | It's the most commonly reported value in a survival analysis.                                                                                                                  |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | It tells us about the size of the effect of our predictor variable(s) on survival.                                                                                             |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | **You should be paying closest attention to this value.**                                                                                                                      |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | When:                                                                                                                                                                          |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | - HR \> 1, risk is increased as the predictor increases                                                                                                                        |
+|                                         |                          | - HR \< 1, risk is decreased as the predictor increases                                                                                                                        |
+|                                         |                          | - HR = 1, no effect of the predictor changing                                                                                                                                  |
++-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Inverse hazard ratio                    | `exp(-coef)`             | This quantity is mainly useful when the hazard ratio is \< 1.                                                                                                                  |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | For example, when `exp(coef) = 0.5`, `exp(-coef) = 2` (because of how exponentials and inverses work), and we might talk about one group having twice the hazard of the other. |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | It doesn't provide any new information, though.                                                                                                                                |
++-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Standard error and confidence intervals | `se(coef)`               | These quantities tell you about the level of uncertainty in the estimate of the coefficient.                                                                                   |
+|                                         |                          |                                                                                                                                                                                |
+|                                         | `lower .95`, `upper .95` | The bigger the standard error, and the wider the confidence intervals, the less certain the estimate is, and the less you should trust it.                                     |
++-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Individual variable significance test   | `z` and `Pr(>|z|)`       | For each predictor variable in a Cox model (in the example above, we've only included one predictor), we will get a separate z-score and associated p-value.                   |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | **Generally, you should ignore these values.**                                                                                                                                 |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | This p-value is assuming the null hypothesis that $\beta = 0$, also equivalent to $exp(\beta) = 1$.                                                                            |
+|                                         |                          |                                                                                                                                                                                |
+|                                         |                          | However, we will talk later about a different way to test significance that is preferred.                                                                                      |
++-----------------------------------------+--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 ## Making predictions
 
@@ -187,22 +238,21 @@ Get survival function using survfit
 ```
 :::
 
-
 ## Assumptions
 
 Like any type of statistical model, a Cox regression makes assumptions about the data and experimental design.
 
 Some assumptions are carried through from regular linear modelling and will be familiar; others are new for survival data.
 
--   Independent observations
--   Linearity (linear predictor of log hazard rate)
--   Proportional hazards
--   Non-informative censoring
+- Independent observations
+- Linearity (linear predictor of log hazard rate)
+- Proportional hazards
+- Non-informative censoring
 
 We also often check for the following two things in our data (you will likely have encountered at least the first of these when learning about linear models), although these are not formal assumption checks:
 
--   Influential points
--   Collinearity
+- Influential points
+- Collinearity
 
 We'll unpack the formal assumptions in more detail below.
 
@@ -230,7 +280,6 @@ cox.zph(cox_hosp)
 ```
 :::
 
-
 ::: {.panel-tabset group="language"}
 ## R
 
@@ -256,7 +305,6 @@ Probability of censoring is decreased as probability of event is increased:
 
 - Patients are more likely to be kept in hospital and monitored if their health is worse (event: death)
 - In an ecology study following a population, healthier animals are more likely to migrate out of the study area (event: death)
- 
 
 ::: {.callout-note collapse="true"}
 #### Cox regression is "semi-parametric"
@@ -276,7 +324,6 @@ There are no assumptions being made about the distribution of the raw time data 
 However, we do make an assumption about the hazards being proportional, and that's where the parametric part comes in.
 :::
 
-
 ## Multivariate Cox regression
 
 ::: {.panel-tabset group="language"}
@@ -286,4 +333,3 @@ However, we do make an assumption about the hazards being proportional, and that
 
 ```
 :::
-

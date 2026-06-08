@@ -11,6 +11,7 @@ book:
     - part: "Single continuous predictor"
       chapters:
         - materials/05-cox-regression.qmd
+        - materials/06-evaluating-cox-model.qmd
     #- part: "Multiple predictors"
         #- materials/07-extending-cox-regression.qmd
         #- materials/08-making-predictions.qmd

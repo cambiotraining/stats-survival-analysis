@@ -1,0 +1,747 @@
+---
+title: "simulating-survival-data"
+output: html_document
+date: "2025-04-16"
+---
+
+Ideas:
+
+- Volcanic eruptions, earthquakes
+- Eggs hatching (snakes?)
+- Seeds germinating
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(rstatix)
+library(survival)
+library(survminer)
+library(ggpubr)
+```
+
+```{python, setup}
+import pandas as pd
+import numpy as np
+from lifelines import KaplanMeierFitter
+kmf = KaplanMeierFitter()
+
+```
+
+
+# Image settings
+
+## Colours
+
+For reference:
+
+Orange - #EA7125 Blue - #0072CF Green - #55A51C Red - #D6083B Purple - #8F2BBC Cyan - #00B1C1
+
+## ggplot settings
+
+```{r}
+theme_set(theme_classic(base_size = 15))
+
+legend_base_size <- 14
+
+output_dir <- "C:/Users/vicki/OneDrive/Documents/Bioinformatics/Survival-analysis/images/"
+```
+
+## ggsave settings
+
+```{r}
+base_height = 5
+quarter_height = 2.5
+base_width = 5
+quarter_width = 2.5
+ratio = 1.618
+
+# required for survival curves specifically
+ggsave_workaround <- function(g){survminer:::.build_ggsurvplot(x = g,
+                                                               surv.plot.height = NULL,
+                                                               risk.table.height = NULL,
+                                                               ncensor.plot.height = NULL)}
+
+# square plot
+square.ggsave <- function(filename, height = base_height, width = base_width, ...) {
+ggsave(filename = filename, height = height, width = width, ...)
+}
+
+# portrait plot
+portrait.ggsave <- function(filename, height = base_height * ratio, width = base_width, ...) {
+ggsave(filename = filename, height = height, width = width, ...)
+}
+
+# landscape plot
+landscape.ggsave <- function(filename, height = base_height, width = base_width * ratio, ...) {
+ggsave(filename = filename, height = height, width = width, ...)
+}
+
+# quarter plot
+quarter.ggsave <- function(filename, height = quarter_height, width = quarter_width * ratio, ...) {
+ggsave(filename = filename, height = height, width = width, ...)
+}
+
+# strip plot
+strip.ggsave <- function(filename, height = base_height/3, width = base_width * 2, ...) {
+ggsave(filename = filename, height = height, width = width, ...)
+}
+
+# wide plot
+wide.ggsave <- function(filename, height = base_height, width = base_width * 2, ...) {
+ggsave(filename = filename, height = height, width = width, ...)
+}
+```
+
+# Simulate dataset
+
+```{r}
+set.seed(42)
+
+# Sample size
+n <- 300
+
+# Define true coefficients (log-hazard ratios)
+beta_age <- 0.03    # each year of age increases hazard
+beta_sex <- 0.5     # being male increases hazard
+```
+
+The lin_pred is behaving like the y_avg that we use in the regular linear modelling. In a standard linear model, the link function is just the identity function, so the average predicted value of y is the same as the linear predictor. When we have a non-identity link function, the linear predictor will undergo the generalisation so that the mapping is no longer one-to-one.
+
+We also need a baseline hazard function - this is sort of the baseline, a beta0.
+
+```{r}
+# Covariates
+age <- rnorm(n, mean = 60, sd = 10)               # continuous
+sex <- rbinom(n, 1, 0.5)                          # binary (0 = female, 1 = male)
+
+# Linear predictor
+lin_pred <- beta_age * age + beta_sex * sex
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.01
+```
+
+Now, we calculate the actual values of time using a transformation of that linear predictor.
+
+Because the rexp function uses rate, we invert the hazard (use the exponential of lin_pred).
+
+```{r}
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+
+time <- rexp(n, rate = lambda * exp(lin_pred))
+```
+
+Now, we simulate censoring, since survival data aren't just times.
+
+First, create an object that simulates a bunch of cut-offs for censoring. These essentially reflect the last time that an individual could possibly have been observed in the study.
+
+We use the uniform distribution, with a max value set to the 80th quantile of the `time` object we created just above.
+
+```{r}
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+```
+
+The pmin function takes two vectors as input, and then returns a single vector containing the parllel minima. In other words, it takes each pair of values at each position (one from each vector) and returns whichever is the smallest.
+
+Therefore, the `observed_time` object contains the last time the individual was actually observed. This will either be the final time they could possibly have been observed, taken from `censoring`, or the time that the event actually occurred.
+
+Then, the `event` object contains just 0s and 1s, saying whether the event had occurred by that final censored time.
+
+```{r}
+observed_time <- pmin(time, censoring)
+
+event <- as.numeric(time <= censoring)
+```
+
+Finally, we put all of this in a data frame.
+
+These survival data are right-censored - the study cuts off before every individual has experienced the event of interest.
+
+There is no left-censoring or interval-censoring here.
+
+```{r}
+observed_time <- round(observed_time)
+
+surv_data <- data.frame(
+  time = observed_time,
+  event = event,
+  age = age,
+  sex = factor(sex, labels = c("Female", "Male"))
+)
+
+head(surv_data)
+```
+
+
+
+# Simulate a dragon hatching example using this process
+
+```{r}
+set.seed(15)
+
+# Sample size
+n <- 60
+
+# Define true coefficients (log-hazard ratios)
+beta_scales <- -0.5     # being metallic decreases hazard (increases hatching times)
+
+# Covariates
+scales <- rbinom(n, 1, 0.5)                          # binary (0 = chromatic, 1 = metallic)
+
+# Linear predictor
+lin_pred <- scales*beta_scales
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.03
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time) # using ceiling rather than round prevents left-censored events
+
+hatching <- data.frame(
+  time = observed_time,
+  hatched = event,
+  scales = factor(scales, labels = c("chromatic", "metallic"))
+)
+
+hatching <- hatching %>%
+  mutate()
+
+head(hatching)
+
+write_csv(hatching, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/hatching.csv")
+```
+
+# Survival curve: population vs estimate
+
+```{r}
+set.seed(115)
+
+# Sample size
+n <- 60
+
+# No covariates → single population
+lin_pred <- 0
+
+# Baseline hazard
+lambda <- 0.05
+
+# Survival times
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+data <- data.frame(
+  time = observed_time,
+  event = event
+)
+```
+
+```{r}
+# Time grid
+t_grid <- seq(0, max(data$time), length.out = 200)
+
+# True survival
+S_true <- exp(-lambda * t_grid)
+
+true_df <- data.frame(
+  time = t_grid,
+  survival = S_true
+)
+
+# Plot
+true_plot <- ggplot(true_df, aes(x = time, y = survival)) +
+  geom_line(linewidth = 1.2, color = "#00B1C1") +
+  labs(title = "True survival curve",
+       x = "Time",
+       y = "S(t)") +
+  theme_classic(base_size = 15)
+```
+
+```{r}
+# KM fit
+fit <- survfit(Surv(time, event) ~ 1, data = data)
+
+# Plot
+km_plot <- ggsurvplot(
+  fit,
+  data = data,
+  conf.int = TRUE,
+  title = "Estimated survival curve",
+  palette = "#EA7125",
+  colour = "#00B1C1",
+)
+```
+
+```{r}
+x_max <- max(data$time)
+
+true_plot <- true_plot +
+  coord_cartesian(xlim = c(0, x_max), ylim = c(0, 1))
+
+km_plot$plot <- km_plot$plot +
+  theme_classic(base_size = 15) +
+  coord_cartesian(xlim = c(0, x_max), ylim = c(0, 1)) + theme(legend.position = "none")
+
+true_est_surv_curve <- true_plot | km_plot$plot
+true_est_surv_curve
+```
+
+```{r}
+ggsave("materials/images/km_est_plot.png", km_plot$plot, width = 4.75, height = 5)
+ggsave("materials/images/true_plot.png", true_plot, width = 4.75, height = 5)
+ggsave("materials/images/true_est_plot.png", true_est_surv_curve, width = 9.5, height = 5)
+```
+
+
+# Survival curve for dragon hatching
+
+## R
+
+Survival curve for dragon egg hatching dataset (simulated above):
+
+```{r}
+hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
+hatch_plot <- ggsurvplot(hatch_curve,
+                         colour="black", palette="#EA7125",
+                         ylab="Survival probability (egg intact)",
+                         conf.int=TRUE,
+                         font.legend = list(size = legend_base_size))
+
+hatch_plot %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = paste0(output_dir, "single_survival_curve.png"))
+```
+
+Curve with median line:
+
+```{r}
+hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
+hatch_plot_median <- ggsurvplot(hatch_curve,
+                         colour="black", palette="#EA7125",
+                         ylab="Survival probability (egg intact)",
+                         conf.int=TRUE,
+                         surv.median.line="hv",
+                         font.legend = list(size = legend_base_size))
+
+hatch_plot_median %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_withmedian.png"))
+```
+
+Curve with median line and risk table:
+
+```{r}
+hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
+hatch_plot_table <- ggsurvplot(hatch_curve,
+                         colour="black", palette="#EA7125",
+                         ylab="Survival probability (egg intact)",
+                         conf.int=TRUE,
+                         surv.median.line="hv",
+                         risk.table = TRUE,
+                         font.legend = list(size = legend_base_size)) 
+
+hatch_plot_table %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_withtable.png"))
+```
+
+Curve with median line and cumulative events table:
+
+```{r}
+hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
+hatch_plot_table2 <- ggsurvplot(hatch_curve,
+                         colour="black", palette="#EA7125",
+                         ylab="Survival probability (egg intact)",
+                         conf.int=TRUE,
+                         surv.median.line="hv",
+                         cumevents = TRUE,
+                         font.legend = list(size = legend_base_size)) 
+
+hatch_plot_table2 %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_witheventstable.png"))
+```
+
+## Python
+
+```{python}
+
+```
+
+
+
+
+# Stratified survival curve
+
+With risk table:
+
+```{r}
+scales_curve <- survfit(Surv(time, event) ~ scales, hatching)
+hatch_plot_strat <- ggsurvplot(scales_curve, 
+           palette=c("#0072CF","#EA7125"), 
+           ylab="Survival probability (egg intact)", conf.int=TRUE,
+           surv.median.line="hv", 
+           risk.table=TRUE, tables.col = "strata",
+           font.legend = list(size = text_base_size))
+
+hatch_plot_strat %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_byscale.png"))
+```
+
+Without risk table:
+
+```{r}
+scales_curve <- survfit(Surv(time, event) ~ scales, hatching)
+hatch_plot_strat_notab <- ggsurvplot(scales_curve, 
+           palette=c("#0072CF","#EA7125"), 
+           ylab="Survival probability (egg intact)", conf.int=TRUE,
+           surv.median.line="hv", 
+           tables.col = "strata",
+           font.legend = list(size = text_base_size))
+
+hatch_plot_strat_notab %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_byscale_notable.png"))
+```
+
+# Mantel-Cox log hazards test
+
+```{r}
+survdiff(Surv(time, event) ~ sex, data=surv_data)
+```
+
+
+# Log-rank test
+
+Null is true:
+
+```{r}
+set.seed(71)
+
+# Sample size
+n <- 60
+
+# No effect
+beta_scales <- 0
+
+# Covariates
+scales <- rbinom(n, 1, 0.5)
+
+# Linear predictor
+lin_pred <- scales * beta_scales
+
+# Baseline hazard
+lambda <- 0.03
+
+# Survival times
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+hatching_null <- data.frame(
+  time = observed_time,
+  hatched = event,
+  scales = factor(scales, labels = c("chromatic", "metallic"))
+)
+
+# KM fit
+fit_null <- survfit(Surv(time, hatched) ~ scales, data = hatching_null)
+
+# Log-rank test
+lr_null <- survdiff(Surv(time, hatched) ~ scales, data = hatching_null)
+p_null <- 1 - pchisq(lr_null$chisq, df = 1)
+
+# Plot
+h0_survplot <- ggsurvplot(
+  fit_null,
+  data = hatching_null,
+  pval = FALSE,
+  legend="none",
+  title = "Null hypothesis is true"
+)
+
+h0_survplot <- h0_survplot$plot + 
+  coord_cartesian(xlim = c(0,50)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+```
+
+Null is false: 
+
+```{r}
+set.seed(71)
+
+# Sample size
+n <- 60
+
+# Effect present
+beta_scales <- -0.8   # stronger effect for clearer separation
+
+# Covariates
+scales <- rbinom(n, 1, 0.5)
+
+# Linear predictor
+lin_pred <- scales * beta_scales
+
+# Baseline hazard
+lambda <- 0.03
+
+# Survival times
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+hatching_diff <- data.frame(
+  time = observed_time,
+  hatched = event,
+  scales = factor(scales, labels = c("chromatic", "metallic"))
+)
+
+# KM fit
+fit_diff <- survfit(Surv(time, hatched) ~ scales, data = hatching_diff)
+
+# Log-rank test
+lr_diff <- survdiff(Surv(time, hatched) ~ scales, data = hatching_diff)
+p_diff <- 1 - pchisq(lr_diff$chisq, df = 1)
+
+# Plot
+h1_survplot <- ggsurvplot(
+  fit_diff,
+  data = hatching_diff,
+  pval = FALSE,
+  legend="none",
+  title = "Null hypothesis is false"
+) 
+
+h1_survplot <- h1_survplot$plot + 
+  coord_cartesian(xlim = c(0,80)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+```
+
+```{r}
+log_rank_h0_h1 <- h0_survplot + h1_survplot
+
+log_rank_h0_h1
+```
+
+```{r}
+ggsave("materials/images/log_rank_h0_h1.png", plot = log_rank_h0_h1,
+       width = 9, height = 4)
+```
+
+## Produce the "real" survival curves
+
+```{r}
+library(ggplot2)
+
+# Time grid
+t_grid <- seq(0, max(hatching_diff$time), length.out = 200)
+
+# True survival
+S_chromatic <- exp(-lambda * t_grid)
+S_metallic  <- exp(-lambda * exp(beta_scales) * t_grid)
+
+true_diff <- data.frame(
+  time = rep(t_grid, 2),
+  survival = c(S_chromatic, S_metallic),
+  scales = factor(rep(c("chromatic", "metallic"), each = length(t_grid)))
+)
+
+# Plot
+surv_curves_h1 <- ggplot(true_diff, aes(x = time, y = survival, color = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(title = "Null hypothesis is false",
+       x = "Time",
+       y = "S(t)") +
+  theme_classic() +
+  coord_cartesian(ylim = c(0,1), xlim = c(0,80)) +
+  theme_classic(base_size = 15) + theme(legend.position = "none")
+
+```
+
+```{r}
+# Time grid
+t_grid <- seq(0, max(hatching_null$time), length.out = 200)
+
+epsilon <- 0.0075  # very small shift
+
+S_metallic_offset <- pmin(exp(-lambda * t_grid) + epsilon, 1)
+
+true_null_offset <- data.frame(
+  time = rep(t_grid, 2),
+  survival = c(exp(-lambda * t_grid), S_metallic_offset),
+  scales = factor(rep(c("chromatic", "metallic"), each = length(t_grid)))
+)
+
+surv_curves_h0 <- ggplot(true_null_offset, aes(x = time, y = survival, color = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(title = "Null hypothesis is true",
+       x = "Time",
+       y = "S(t)") +
+  theme_classic() +
+  coord_cartesian(ylim = c(0,1), xlim = c(0,50)) +
+  theme_classic(base_size = 15) + theme(legend.position = "none")
+```
+
+```{r}
+surv_curves_h0_h1 <- surv_curves_h0 + surv_curves_h1 
+surv_curves_h0_h1
+```
+
+```{r}
+ggsave("materials/images/surv_curves_h0_h1.png", plot = surv_curves_h0_h1,
+       width = 9, height = 4)
+```
+
+# Fitting a Cox model
+
+Fit a Cox model, using the `survival::coxph` function.
+
+The syntax is really similar to regular linear modelling, except that the response variable is coded as `Surv(time, event)`.
+
+This creates a "survival object" which we can look at more closely.
+
+With this code, we're essentially telling R: "Model the hazard of the event as a function of age, sex, and treatment, using the survival time and event indicator from my data."
+
+```{r}
+Surv(time, event)
+
+cox_fit <- coxph(Surv(time, event) ~ age + sex, data = surv_data)
+
+summary(cox_fit)
+```
+
+If we want to extract p-values, we then need to do the proportional hazards test:
+
+```{r}
+# Proportional hazards test
+cox.zph(cox_fit)
+```
+
+# Simulating interval censored data
+
+If you want to have "realistic" survival data, they're probably going to be interval-censored
+i.e., you know that the event occurred between the last time you looked and this time, but not exactly when.
+
+To achieve this, you can either:
+
+```{r}
+# Round observed times to nearest integer
+surv_data$time <- round(surv_data$time)  # Rounds to whole number (e.g., 1 unit = 1 month)
+
+# Now there may be ties
+table(duplicated(surv_data$time))  # TRUE = ties exist
+
+```
+
+Or;
+
+```{r}
+# Assume assessments happen monthly
+visit_times <- seq(1, max(surv_data$time), by = 1)
+
+# Round up to next visit time (ceiling)
+surv_data$time <- ceiling(surv_data$time)
+
+# Some extra ties now
+head(table(surv_data$time))
+
+```
+
+
+rexp vs rgeom
+
+rexp for continuous time
+rgeom for stepwise time (e.g., observing once per month, or every morning)
+
+## Seed germination example
+
+```{r}
+set.seed(123)
+
+# 1. Parameters
+n <- 300  # total seeds
+species <- factor(sample(c("A", "B", "C"), size = n, replace = TRUE))  # 3 species
+
+# 2. True species effects on germination (log-hazard scale)
+beta <- c(A = 0, B = -0.5, C = 0.5)  # species B germinates slower, C faster
+
+# 3. Convert to hazard rate via exp(beta)
+hazard_rate <- exp(unname(beta[species])) * 0.2  # baseline daily hazard
+
+# 4. Simulate true (unobserved) germination day
+# T ~ Geometric(p = daily hazard) + 1 (to start at day 1)
+true_day <- rgeom(n, prob = hazard_rate) + 1
+
+# 5. Simulate censoring: e.g., study runs for 14 days
+max_days <- 14
+censored <- true_day > max_days
+obs_day <- pmin(true_day, max_days)
+
+# 6. Create interval-censored bounds
+left <- ifelse(censored, max_days, obs_day - 1)
+right <- ifelse(censored, NA, obs_day)
+
+# 7. Final dataset
+seed_data <- data.frame(
+  species = species,
+  left = left,
+  right = right,
+  germinated = !censored
+)
+```
+
+```{r}
+# Surv object with interval-censoring
+S <- Surv(time = seed_data$left, time2 = seed_data$right, type = "interval2")
+
+# Fit parametric survival model
+fit <- survreg(S ~ species, data = seed_data, dist = "weibull")
+summary(fit)
+```
+
+```{r}
+# Convert right-censored observations to standard Surv object for plotting
+plot_data <- seed_data
+plot_data$time <- ifelse(plot_data$germinated, plot_data$right, plot_data$left)
+plot_data$event <- as.numeric(plot_data$germinated)
+
+ggsurvplot(survfit(Surv(time, event) ~ species, data = plot_data),
+           conf.int = TRUE, pval = TRUE, risk.table = TRUE)
+```
+
+
+Cox model cannot handle interval censored data, which is why we used the parametric Weibull approach here.
+
+That's because the Cox model, to estimate partial likelihood, requires us to know the exact order of when events occurred.
+
+You can trick it, by using the midpoint of the interval as the exact time? But there's still going to be ties. ChatGPT didn't have a great explanation for why you might choose to trick it this way.
+
+But there are other packages/functions (icenReg) that can do Cox regression on interval-censored data.
