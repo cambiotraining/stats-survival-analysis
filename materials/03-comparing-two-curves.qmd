@@ -65,9 +65,6 @@ In this chapter, we'll look into how, when and why to use the log-rank test to c
 
 ## Libraries and functions
 
-:::: {.callout-note collapse="true"}−3.66569 − 0.51659 + 0.15680 × 20
-## Click to expand
-
 ::: {.panel-tabset group="language"}
 ## R
 
@@ -89,7 +86,6 @@ from lifelines import *
 import matplotlib.pyplot as plt
 ```
 :::
-::::
 
 ## The log-rank (Mantel-Cox) test
 
@@ -99,11 +95,13 @@ You might find it useful to think of the log-rank test as an analogue of a two-s
 
 The null hypothesis:
 
--   The two groups don't differ in how likely they are to experience the event over time;
+- The two groups don't differ in how likely they are to experience the event over time;
 
--   i.e., in the underlying population, the **true survival curves are identical.**
+- i.e., in the underlying population, the **true survival curves are identical.**
 
-So, if our p-value falls under the significance threshold, our data are very unlikely to have occurred just by chance, giving some evidence that a difference does exist
+So, if our p-value falls under the significance threshold, our data are very unlikely to have occurred just by chance, giving some evidence that a difference does exist.
+
+![Visualising the null hypothesis in a log-rank test](images/surv_curves_h0_h1.png)
 
 ## Assumptions of a log-rank test
 
@@ -117,14 +115,22 @@ An "observation" = a unique row in the raw dataset, representing a unique indivi
 
 "Independent" means that none of the individuals are affected by any other individuals in the study, or artificially similar to them.
 
-Common sources of non-independence would include:
+For example, let's look at the example of bird's eggs hatching, illustrated below.
 
--   Repeated measures (recording multiple rows/events of interest per individual)
--   Matched/paired designs
--   Natural "clusters" or "nesting", such as patients within hospitals, or students within schools
--   Genetic relatedness, e.g., using animals from the same litter
+The event of interest is an egg hatching. If, however, we include multiple eggs from the same nest, those eggs are not independent of one another - they're artificially similar because they were laid at the same time, and may affect each other through physical means (e.g., shared warmth/contact).
 
-::: {.callout-tip collapse="true" appearance="minimal" icon="false"}
+To make it truly independent, we can only include one egg per nest (e.g., we might decide to use the first egg).
+
+![Non-independent (left) vs independent (right)](images/independence1.png)
+
+Other common sources of non-independence would include (but are not limited to!):
+
+- Repeated measures (recording multiple rows/events of interest per individual)
+- Matched/paired designs
+- Natural "clusters" or "nesting", such as patients within hospitals, or students within schools
+- Genetic relatedness, e.g., using animals from the same litter
+
+::: {.callout-tip collapse="true" icon="false"}
 #### Checking for independence
 
 You might find some people online telling you about various quantitative tests for independence. I'm not going to do that, because the only reliable check for independence is a good understanding of your experimental design.
@@ -132,19 +138,26 @@ You might find some people online telling you about various quantitative tests f
 If you can think of any ways of grouping together the rows of your dataset, then that's an indication that you have some dependency.
 :::
 
-::: {.callout-warning collapse="true" appearance="minimal" icon="false"}
+::: {.callout-warning collapse="true" icon="false"}
 #### What if independence is violated?
 
 You may need to consider something like a mixed effects Cox regression model. This is a combination of Cox regression (which we talk about later in this course) and mixed effects modelling (which needs a whole course all of its own).
 :::
 
-### Assumption 2: Non-informative censoring
+### Assumption 2: Non-informative censoring {#sec-non-informative-censoring}
 
 The likelihood of censoring should not be related to the likelihood of experiencing the event of interest.
 
 Phrased another way: the individuals who are censored are assumed to have had the same underlying time-to-event distribution if they had remained in the study, i.e., the same likelihood of experiencing the event, as those who weren't censored.
 
-::: {.callout-tip collapse="true" appearance="minimal" icon="false"}
+![Examples of informative censoring](images/informative_censoring1.png)
+
+The figure above shows two examples of informative censoring, which would violate the assumption.
+
+1.  **House sales**. Houses that are less likely to sell/take longer to sell, are also more likely to be removed from the housing market by their owners. In other words, the length of time taken for the house to sell, is related to the likelihood that the house is removed from the study.
+2.  **Flowering plants**. Plants that are diseased or growing poorly will take longer to flower, but they are also more likely to be removed from the study entirely (e.g., by the gardener throwing them away).
+
+::: {.callout-tip collapse="true" icon="false"}
 #### Checking for non-informative censoring
 
 The most obvious clue will be unequal rates of censoring between groups. This is a sign that censoring is not happening at random.
@@ -152,31 +165,33 @@ The most obvious clue will be unequal rates of censoring between groups. This is
 You will also need to consider your experimental design carefully.
 :::
 
-::: {.callout-warning collapse="true" appearance="minimal" icon="false"}
+::: {.callout-warning collapse="true" icon="false"}
 #### What if censoring is informative?
 
 You could consider a competing risks model.
 :::
 
-### Desirable: Proportional hazards
+### Desirable: Proportional hazards {#sec-proportional-hazards-1}
 
 The hazard ratio - i.e., the increased risk of experiencing the event in group 1 versus group 2 - should ideally stay consistent over time.
 
 In our `hospital_stays` dataset, proportional hazards would mean that if non-surgical patients are 2x more likely than surgical patients to be discharged on day 3, they would also be 2x more likely to get discharged on day 30 (and every day in between).
 
-::: {.callout-tip collapse="true" appearance="minimal" icon="false"}
+![Visualising examples of proportional vs non-proportional hazards](images/ph_vis_all.png)
+
+::: {.callout-tip collapse="true" icon="false"}
 #### Checking for proportional hazards
 
 There a handful of methods available to you:
 
--   Inspecting the Kaplan-Meier curves; if they cross over, that's a bad sign
--   Creating log-log plots; you want the lines to be roughly parallel
--   Checking the Schoenfeld residuals
+- Inspecting the Kaplan-Meier curves; see the figure above for some examples
+- Creating log-log plots; you want the lines to be roughly parallel
+- Checking the Schoenfeld residuals
 
-We'll unpack some of these methods in more detail in later chapters when we look at Cox regression, where proportional hazards is more of a formal assumption.
+We'll unpack some of these methods in more detail in later chapters when we look at Cox regression, where proportional hazards is a formal assumption.
 :::
 
-::: {.callout-warning collapse="true" appearance="minimal" icon="false"}
+::: {.callout-warning collapse="true" icon="false"}
 #### What if hazards aren't proportional?
 
 The log-rank test becomes less powerful or sensitive (less likely to detect true differences).
@@ -276,9 +291,9 @@ survdiff(Surv(time, discharged) ~ surgery, data = hospital_stays)
 
 In the output, alongside the statistic and p-value, we are shown:
 
--   the `n` sample size in each group
--   the observed number of events (discharges from hospital) in each group
--   what the expected number of events **would** be, if there were no effect of `surgery`
+- the `n` sample size in each group
+- the observed number of events (discharges from hospital) in each group
+- what the expected number of events **would** be, if there were no effect of `surgery`
 
 ## Python
 
@@ -286,10 +301,10 @@ There is a dedicated `logrank_test` function in the `lifelines` package.
 
 We have to provide the following arguments:
 
--   The set of times `T` for the `surgery = 1` group
--   The set of times `T` for the `surgery = 0` group
--   The events (versus censoring) `E` for the `surgery = 1` group
--   The events `E` for the `surgery = 0` group
+- The set of times `T` for the `surgery = 1` group
+- The set of times `T` for the `surgery = 0` group
+- The events (versus censoring) `E` for the `surgery = 1` group
+- The events `E` for the `surgery = 0` group
 
 ```{python, log-rank for surgery}
 from lifelines.statistics import logrank_test
@@ -313,7 +328,7 @@ results.p_value
 ```
 :::
 
-A chi-square ($\chi^2$) statistic has been calculated to summarise the difference between the two groups.
+A chi-square ($\chi^2$\$\\chi\^2\$) statistic has been calculated to summarise the difference between the two groups.
 
 The associated p-value, in this case, tells us that the likelihood of observing two curves that are this (or more) different from each other, if `surgery` really had no effect on time-to-discharge in the hospital, is very low.
 
@@ -456,6 +471,8 @@ plt.show()
 Chances are that if you're running a log-rank test, you'll likely want to report it. Here are some general guidelines to follow when you do.
 
 +---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         |                                                                                                                                                                                                            |
++=========+============================================================================================================================================================================================================+
 | ✓       | **Visualise the survival curves**                                                                                                                                                                          |
 +---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |         | A single significance test by itself tells a reader very little. It doesn't capture important details like sample size or direction of effect (e.g., which group is more at risk than the other).          |
@@ -498,8 +515,8 @@ It's analogous to a two-sample t-test in regular linear modelling. It tests the 
 ::: callout-tip
 #### Key Points
 
--   The null hypothesis of a log-rank test is that two groups share the same survival curve in the underlying population
--   A significant log-rank test means that our data are unlikely to occur by chance (but does not "prove" a difference!)
--   The log-rank test makes two key assumptions: independent observations and non-informative censoring
--   It is also a more powerful (sensitive) test when the hazards are proportional between groups
+- The null hypothesis of a log-rank test is that two groups share the same survival curve in the underlying population
+- A significant log-rank test means that our data are unlikely to occur by chance (but does not "prove" a difference!)
+- The log-rank test makes two key assumptions: independent observations and non-informative censoring
+- It is also a more powerful (sensitive) test when the hazards are proportional between groups
 :::

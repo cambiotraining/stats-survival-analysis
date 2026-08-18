@@ -84,7 +84,7 @@ However, interpreting all of those numbers and tests from the model summary requ
 
 ## Concordance
 
-One of the numbers in the output that we can use is concordance. This is a measure of goodness-of-fit, or predictive accuracy. It's analogous to (but not quite the same as) $R^2$ in linear models.
+One of the numbers in the output that we can use is concordance. This is a measure of goodness-of-fit, or predictive accuracy. It's analogous to (but not quite the same as) $R^2$\$R\^2\$\$R\^2\$ in linear models.
 
 It is calculated by taking each possible pair of individuals in the dataset and ranking their actual survival times, and then comparing it to what the model predicted their risks/survival times to be.
 
@@ -104,20 +104,17 @@ In other words, concordance measures how good the model is at ordering individua
 
 Like any type of statistical model, a Cox regression makes assumptions about the data and experimental design. If they're not met, we shouldn't trust the model, even (especially!) if the numbers in the output look tempting.
 
-Some assumptions are carried through from regular linear modelling and will be familiar; others are new for survival data.
+Cox regression has some assumptions in common with the log-rank test, and these assumptions have already been explored in sufficient detail elsewhere:
 
-- Independent observations
+- [Independent observations](#sec-independence)
+- [Non-informative censoring](#sec-non-informative-censoring)
+
+The others we will explore more here:
+
 - Linearity
 - Proportional hazards
-- Non-informative censoring
 
-The independence assumption was discussed in @sec-independence of a previous chapter, so we won't repeat it here, but you should go back and review that if you feel unsure about it.
-
-The final two assumptions are unpacked later on in subsequent chapters, with some discussion/pointers on what you can do if they're not met.
-
-For this chapter, we will focus just on linearity.
-
-## Linearity
+### Linearity
 
 Although a Cox model is not itself linear, it does contain a linear bit in it, which we are transforming/embedding inside a non-linear equation. And we do still need that linear bit to actually be linear.
 
@@ -127,7 +124,7 @@ So, if you plotted the predictor variable against the log hazard, we expect a st
 
 We only need to concern ourselves with linearity for continuous predictors (not categorical ones).
 
-### Martingale residuals plots
+#### Martingale residuals plots
 
 The most common method for checking linearity in Cox regression is by plotting something called the Martingale residuals.
 
@@ -247,26 +244,39 @@ Our line above is not perfectly straight, but it is always decreasing, with no s
 This is a pretty good plot! It's likely that the linearity assumption is met.
 :::
 
-## Time-varying predictors
+### Proportional hazards
 
-It's worth noting that all of the examples we've discussed in this course so far feature predictors that do not vary with time.
+In a [previous section](#sec-proportional-hazards-1), the idea of proportional hazards was introduced in the context of the log-rank test.
 
-For example, whether a patient is male or female, or what age they were when they were admitted to hospital, does not change during the course of the time they're being observed.
+Cox regression includes proportional hazards as a formal assumption.
 
-In all of our examples, we are also assuming that the *effect* of the predictors on the probability of the event occurring also does not vary with time.
+#### What are proportional hazards?
 
-For example, we assume that a patient being male has the same effect on their chance to be discharged from hospital on day 1, as it does on day 30.
+#### Inspecting the survival curves
 
-These are two related, but distinct ideas:
+#### Log-log plots
 
-- Time-varying **predictors**
-- Time-varying **effects** of predictors
+#### Schoenfeld residuals
 
-There will be a bonus chapter later that addresses how to deal with situations where predictors vary with time.
+::: {.callout-note collapse="true" icon="false"}
+#### Cox regression is "semi-parametric"
 
-If the effect of a predictor varies with time, this will cause a violation of the proportional hazards assumption, mentioned above. Again, we will talk about this more in a subsequent chapter.
+If you do any of your own reading about the assumptions of Cox regression, you may encounter people describing it as "semi-parametric".
 
-## Comparing to the log-rank test
+If you understood all the stuff in this assumptions section above this box, you don't really need to understand what this means, but if you're curious, here's a bit more explanation:
+
+Standard linear models are **parametric**. They make assumptions about the distribution of the residuals (namely, that it is normal).
+
+**Non-parametric tests** (e.g., Wilcoxon, Kruskal-Wallis) do not make these assumptions, hence why we use them when we have cause to believe things are not nicely normal.
+
+In Cox regression, we fall somewhere in the middle, making assumptions about the nature of the distribution in some ways and not others.
+
+There are no assumptions being made about the distribution of the raw time data itself, or about the shape of the baseline hazard function – these can look like anything.
+
+However, we do make an assumption about the hazards being **proportional**, and that's where the parametric part comes in. Hence, "semi-parametric".
+:::
+
+## Bonus: Comparing to the log-rank test
 
 So far in this chapter, we've used Cox regression to model continuous predictors, but it also works for categorical predictors too.
 

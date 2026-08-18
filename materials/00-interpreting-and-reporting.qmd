@@ -1,5 +1,5 @@
 ---
-title: "Cox regression"
+title: "Cox regression (old draft)"
 editor: visual
 ---
 

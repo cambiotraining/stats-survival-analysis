@@ -46,6 +46,8 @@ theme_set(theme_classic(base_size = 15))
 legend_base_size <- 14
 
 output_dir <- "C:/Users/vicki/OneDrive/Documents/Bioinformatics/Survival-analysis/images/"
+
+setwd("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis")
 ```
 
 ## ggsave settings
@@ -174,8 +176,6 @@ surv_data <- data.frame(
 
 head(surv_data)
 ```
-
-
 
 # Simulate a dragon hatching example using this process
 
@@ -310,12 +310,20 @@ ggsave("materials/images/true_est_plot.png", true_est_surv_curve, width = 9.5, h
 
 # Survival curve for dragon hatching
 
-## R
-
-Survival curve for dragon egg hatching dataset (simulated above):
+Read in data - is simulated above.
 
 ```{r}
-hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
+hatching <- read_csv("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/hatching.csv")
+```
+
+## Previous attempts
+
+Survival curve for dragon egg hatching dataset (simulated above):
+```{r}
+hatch_curve <- survfit(Surv(time, hatched) ~ 1, hatching)
+
+hatch_plot <- ggsurvplot(hatch_curve)
+
 hatch_plot <- ggsurvplot(hatch_curve,
                          colour="black", palette="#EA7125",
                          ylab="Survival probability (egg intact)",
@@ -328,9 +336,11 @@ hatch_plot %>%
 ```
 
 Curve with median line:
-
 ```{r}
 hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
+
+hatch_plot_median <- ggsurvplot(hatch_curve)
+
 hatch_plot_median <- ggsurvplot(hatch_curve,
                          colour="black", palette="#EA7125",
                          ylab="Survival probability (egg intact)",
@@ -344,7 +354,6 @@ hatch_plot_median %>%
 ```
 
 Curve with median line and risk table:
-
 ```{r}
 hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
 hatch_plot_table <- ggsurvplot(hatch_curve,
@@ -361,7 +370,6 @@ hatch_plot_table %>%
 ```
 
 Curve with median line and cumulative events table:
-
 ```{r}
 hatch_curve <- survfit(Surv(time, event) ~ 1, hatching)
 hatch_plot_table2 <- ggsurvplot(hatch_curve,
@@ -377,21 +385,11 @@ hatch_plot_table2 %>%
   landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_witheventstable.png"))
 ```
 
-## Python
-
-```{python}
-
-```
-
-
-
-
-# Stratified survival curve
+## Stratified survival curve
 
 With risk table:
-
 ```{r}
-scales_curve <- survfit(Surv(time, event) ~ scales, hatching)
+scales_curve <- survfit(Surv(time, hatched) ~ scales, hatching)
 hatch_plot_strat <- ggsurvplot(scales_curve, 
            palette=c("#0072CF","#EA7125"), 
            ylab="Survival probability (egg intact)", conf.int=TRUE,
@@ -405,7 +403,6 @@ hatch_plot_strat %>%
 ```
 
 Without risk table:
-
 ```{r}
 scales_curve <- survfit(Surv(time, event) ~ scales, hatching)
 hatch_plot_strat_notab <- ggsurvplot(scales_curve, 
@@ -420,6 +417,109 @@ hatch_plot_strat_notab %>%
   landscape.ggsave(plot = ., filename = paste0(output_dir, "survival_curve_byscale_notable.png"))
 ```
 
+## Running log rank test
+
+```{r}
+scales_curve <- survfit(Surv(time, event) ~ scales, hatching)
+
+dragon_curve1 <- ggsurvplot(scales_curve, conf.int = TRUE,
+            palette=c("#8F2BBC","#55A51C"), conf.int.alpha = 0.2,
+            ylab="Survival probability (egg intact)",
+            title = "Dragon egg hatching", subtitle = "Comparing two curves",
+            legend = "right", legend.title = "Scale colour", legend.labs = c("Chromatic", "Metallic"))
+
+dragon_curve2 <- ggsurvplot(scales_curve, conf.int = TRUE, pval = TRUE,
+            surv.median.line = "hv",
+            palette=c("#8F2BBC","#55A51C"), conf.int.alpha = 0.2,
+            ylab="Survival probability (egg intact)",
+            title = "Dragon egg hatching", subtitle = "Comparing two curves",
+            legend = "right", legend.title = "Scale colour", legend.labs = c("Chromatic", "Metallic"))
+```
+
+```{r}
+dragon_curve1 %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragon_curve1.png")
+
+dragon_curve2 %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragon_curve2.png")
+```
+
+## Three curves
+
+```{r}
+# Add a third group of dragons to the hatching dataset via simulation
+set.seed(15)
+
+# Sample size
+n <- 90
+
+# Define true coefficients (log-hazard ratios)
+beta_scales <- c(-0.5, 0.5)     # being metallic decreases hazard (increases hatching times), being iridescent increases hazard (decreases hatching times)
+
+# Create scales variable
+scales <- sample(c("chromatic", "metallic", "iridescent"), size = n, replace = TRUE)
+
+# Linear predictor
+lin_pred <- ifelse(scales == "chromatic", 0, ifelse(scales == "metallic", beta_scales[1], beta_scales[2]))
+
+# Baseline hazard
+lambda <- 0.03
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time) # using ceiling rather than round prevents left-censored events
+
+hatching3 <- data.frame(
+  time = observed_time,
+  hatched = event,
+  scales = factor(scales, labels = c("chromatic", "metallic", "iridescent"))
+)
+
+# Take the iridescent dragons from hatching3 and join them with the original hatching dataset
+hatching3_exact <- hatching3 %>%
+  filter(scales == "iridescent") %>%
+  select(time, hatched, scales) %>%
+  bind_rows(hatching) %>%
+  # convert scales to factor in c, m, i order
+  mutate(scales = factor(scales, levels = c("chromatic", "metallic", "iridescent")))
+  
+```
+
+```{r}
+scales_curve_3 <- survfit(Surv(time, hatched) ~ scales, hatching3_exact)
+
+dragon_curve3 <- ggsurvplot(scales_curve_3, conf.int = TRUE,
+            palette=c("#8F2BBC","#55A51C", "#EA7125"), conf.int.alpha = 0.2,
+            ylab="Survival probability (egg intact)", xlim = c(0, 50),
+            title = "Dragon egg hatching", subtitle = "Comparing three curves",
+            legend = "right", legend.title = "Scale colour", legend.labs = c("Chromatic", "Metallic", "Iridescent"))
+
+dragon_curve4 <- ggsurvplot(scales_curve_3, conf.int = TRUE, pval = TRUE,
+            palette=c("#8F2BBC", "#55A51C", "#EA7125"), conf.int.alpha = 0.2,
+            surv.median.line = "hv",
+            ylab="Survival probability (egg intact)", xlim = c(0, 50),
+            title = "Dragon egg hatching", subtitle = "Comparing three curves",
+            legend = "right", legend.title = "Scale colour", legend.labs = c("Chromatic", "Metallic", "Iridescent"))
+```
+
+```{r}
+dragon_curve3 %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragon_curve3.png")
+
+dragon_curve4 %>%
+  ggsave_workaround() %>%
+  landscape.ggsave(plot = ., filename = "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragon_curve4.png")
+```
+
 # Mantel-Cox log hazards test
 
 ```{r}
@@ -427,7 +527,7 @@ survdiff(Surv(time, event) ~ sex, data=surv_data)
 ```
 
 
-# Log-rank test
+# Visualising theoretical survival curves in log rank test
 
 Null is true:
 
@@ -745,3 +845,633 @@ That's because the Cox model, to estimate partial likelihood, requires us to kno
 You can trick it, by using the midpoint of the interval as the exact time? But there's still going to be ties. ChatGPT didn't have a great explanation for why you might choose to trick it this way.
 
 But there are other packages/functions (icenReg) that can do Cox regression on interval-censored data.
+
+
+# Visualising (non-)proportional hazards
+
+```{r}
+set.seed(71)
+
+library(survival)
+
+n <- 500
+```
+
+```{r}
+sim_ph <- function(n, lambda = 0.10, HR = 0.60, censor_rate = 0.02) {
+
+  trt <- rbinom(n, 1, 0.5)
+
+  # Constant hazard ratio:
+  # treatment hazard = lambda * HR
+  hazard <- lambda * ifelse(trt == 1, HR, 1)
+
+  event_time <- rexp(n, rate = hazard)
+  censor_time <- rexp(n, rate = censor_rate)
+
+  time <- pmin(event_time, censor_time)
+  status <- as.integer(event_time <= censor_time)
+
+  data.frame(time, status, trt)
+}
+```
+
+Crossing hazards
+```{r}
+sim_crossing <- function(n,
+                         lambda_control = 0.10,
+                         lambda_trt_early = 0.18,
+                         lambda_trt_late = 0.04,
+                         change_time = 5,
+                         censor_rate = 0.01) {
+
+  trt <- rbinom(n, 1, 0.5)
+
+  event_time <- numeric(n)
+
+  for (i in seq_len(n)) {
+
+    if (trt[i] == 0) {
+
+      # Control: constant hazard
+      event_time[i] <- rexp(1, rate = lambda_control)
+
+    } else {
+
+      # Treatment: high hazard initially
+      t1 <- rexp(1, rate = lambda_trt_early)
+
+      if (t1 <= change_time) {
+        event_time[i] <- t1
+      } else {
+        # Survived the early period; generate remaining time
+        event_time[i] <-
+          change_time +
+          rexp(1, rate = lambda_trt_late)
+      }
+    }
+  }
+
+  censor_time <- rexp(n, rate = censor_rate)
+
+  time <- pmin(event_time, censor_time)
+  status <- as.integer(event_time <= censor_time)
+
+  data.frame(time, status, trt)
+}
+```
+
+Delayed effect
+```{r}
+sim_delayed <- function(n,
+                        lambda = 0.10,
+                        HR_after = 0.40,
+                        delay = 5,
+                        censor_rate = 0.01) {
+
+  trt <- rbinom(n, 1, 0.5)
+
+  event_time <- numeric(n)
+
+  for (i in seq_len(n)) {
+
+    if (trt[i] == 0) {
+
+      event_time[i] <- rexp(1, rate = lambda)
+
+    } else {
+
+      # No treatment effect before the delay
+      t1 <- rexp(1, rate = lambda)
+
+      if (t1 <= delay) {
+        event_time[i] <- t1
+      } else {
+        event_time[i] <-
+          delay +
+          rexp(1, rate = lambda * HR_after)
+      }
+    }
+  }
+
+  censor_time <- rexp(n, rate = censor_rate)
+
+  time <- pmin(event_time, censor_time)
+  status <- as.integer(event_time <= censor_time)
+
+  data.frame(time, status, trt)
+}
+```
+
+Cure effect function
+```{r}
+sim_cure <- function(n,
+                     lambda = 0.10,
+                     cure_treatment = 0.35,
+                     censor_rate = 0.01) {
+
+  trt <- rbinom(n, 1, 0.5)
+
+  # Only the treatment group can be cured
+  cure_prob <- ifelse(
+    trt == 1,
+    cure_treatment,
+    0
+  )
+
+  cured <- rbinom(n, 1, cure_prob)
+
+  # Event times for susceptible subjects
+  event_time <- rexp(n, rate = lambda)
+
+  # Cured treatment subjects never experience the event
+  event_time[cured == 1] <- Inf
+
+  # Independent censoring
+  censor_time <- rexp(n, rate = censor_rate)
+
+  time <- pmin(event_time, censor_time)
+  status <- as.integer(event_time <= censor_time)
+
+  data.frame(
+    time,
+    status,
+    trt,
+    cured
+  )
+}
+```
+
+Increasing hazards
+```{r}
+sim_increasing_effect <- function(
+    n,
+    lambda = 0.10,
+    HR_start = 1.0,
+    HR_end = 0.30,
+    scale = 10,
+    censor_rate = 0.01
+) {
+
+  trt <- rbinom(n, 1, 0.5)
+
+  # Smoothly changing HR:
+  # HR_start at t = 0
+  # approaches HR_end as t increases
+  HR <- function(t) {
+    HR_end + (HR_start - HR_end) * exp(-t / scale)
+  }
+
+  # Cumulative treatment hazard
+  H_trt <- function(t) {
+    lambda * (
+      HR_end * t +
+      (HR_start - HR_end) * scale *
+        (1 - exp(-t / scale))
+    )
+  }
+
+  event_time <- numeric(n)
+
+  for (i in seq_len(n)) {
+
+    u <- runif(1)
+    target <- -log(u)
+
+    if (trt[i] == 0) {
+
+      # Control: exponential survival
+      event_time[i] <- target / lambda
+
+    } else {
+
+      # Find t such that H(t) = -log(U)
+      event_time[i] <- uniroot(
+        function(t) H_trt(t) - target,
+        interval = c(0, 1e4)
+      )$root
+    }
+  }
+
+  censor_time <- rexp(n, rate = censor_rate)
+
+  time <- pmin(event_time, censor_time)
+  status <- as.integer(event_time <= censor_time)
+
+  data.frame(time, status, trt)
+}
+```
+
+Decreasing hazards
+```{r}
+sim_decreasing_effect <- function(
+    n,
+    lambda = 0.10,
+    HR_start = 0.30,
+    HR_end = 1.0,
+    scale = 8,
+    censor_rate = 0.01
+) {
+
+  trt <- rbinom(n, 1, 0.5)
+
+  # Smoothly changing HR
+  HR <- function(t) {
+    HR_end - (HR_end - HR_start) * exp(-t / scale)
+  }
+
+  # Cumulative treatment hazard
+  H_trt <- function(t) {
+    lambda * (
+      HR_end * t -
+      (HR_end - HR_start) * scale *
+        (1 - exp(-t / scale))
+    )
+  }
+
+  event_time <- numeric(n)
+
+  for (i in seq_len(n)) {
+
+    u <- runif(1)
+    target <- -log(u)
+
+    if (trt[i] == 0) {
+
+      event_time[i] <- target / lambda
+
+    } else {
+
+      event_time[i] <- uniroot(
+        function(t) H_trt(t) - target,
+        interval = c(0, 1e4)
+      )$root
+    }
+  }
+
+  censor_time <- rexp(n, rate = censor_rate)
+
+  time <- pmin(event_time, censor_time)
+  status <- as.integer(event_time <= censor_time)
+
+  data.frame(time, status, trt)
+}
+```
+
+## Stacking plots together
+
+```{r}
+dat_ph <- sim_ph(n)
+fit_ph <- survfit(Surv(time, status) ~ trt, data = dat_ph)
+
+ph_survplot <- ggsurvplot(fit_ph)$plot + 
+  labs(title = "Proportional hazards") +
+  coord_cartesian(xlim = c(0,60)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+dat_cross <- sim_crossing(n)
+fit_cross <- survfit(Surv(time, status) ~ trt, data = dat_cross)
+
+crossh_survplot <- ggsurvplot(fit_cross)$plot + 
+  labs(title = "Crossed hazards") +
+  coord_cartesian(xlim = c(0,60)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+dat_delayed <- sim_delayed(n, delay=10, HR_after=0.3)
+fit_delayed <- survfit(Surv(time, status) ~ trt, data = dat_delayed)
+
+delay_survplot <- ggsurvplot(fit_delayed)$plot + 
+  labs(title = "Delayed or increasing effects") +
+  coord_cartesian(xlim = c(0,60)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+dat_cure <- sim_cure(n, cure_treatment=0.25)
+fit_cure <- survfit(Surv(time, status) ~ trt, data = dat_cure)
+
+ggsurvplot(fit_cure)$plot + 
+  labs(title = "Cure effects") +
+  coord_cartesian(xlim = c(0,60)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+dat_increasing <- sim_increasing_effect(n)
+fit_increasing <- survfit(Surv(time, status) ~ trt, data = dat_increasing)
+
+ggsurvplot(fit_increasing)$plot + 
+  labs(title = "Increasing hazards") +
+  coord_cartesian(xlim = c(0,60)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+dat_decreasing <- sim_decreasing_effect(n)
+fit_decreasing <- survfit(Surv(time, status) ~ trt, data = dat_decreasing)
+
+dech_survplot <- ggsurvplot(fit_decreasing)$plot + 
+  labs(title = "Decreasing hazards") +
+  coord_cartesian(xlim = c(0,60)) + 
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+```
+
+```{r}
+ph_vis1 <- ph_survplot + crossh_survplot
+ph_vis2 <- ph_survplot + delay_survplot
+ph_vis3 <- ph_survplot + dech_survplot
+```
+
+```{r}
+setwd("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis")
+
+ggsave("materials/images/ph_vis0.png", plot = ph_survplot,
+       width = 4.5, height = 4)
+
+ggsave("materials/images/ph_vis1.png", plot = ph_vis1,
+       width = 9, height = 4)
+
+ggsave("materials/images/ph_vis2.png", plot = ph_vis2,
+       width = 9, height = 4)
+
+ggsave("materials/images/ph_vis3.png", plot = ph_vis3,
+       width = 9, height = 4)
+```
+
+```{r}
+ph_vis_all <- (ph_survplot + crossh_survplot) / (delay_survplot + dech_survplot)
+```
+
+```{r}
+ggsave("materials/images/ph_vis_all.png", plot = ph_vis_all,
+width = 9, height = 8)
+```
+
+## Using smaller sample sizes
+
+Repeat the above, but now with an n of 50
+
+```{r}
+set.seed(71)
+n <- 50
+
+dat_ph_50 <- sim_ph(n)
+fit_ph_50 <- survfit(Surv(time, status) ~ trt, data = dat_ph_50)
+
+ph_survplot_50 <- ggsurvplot(fit_ph_50)$plot + 
+  labs(title = "Proportional hazards") +
+  coord_cartesian(xlim = c(0,60)) + 
+  # change x ticks to match the other plots
+  scale_x_continuous(breaks = seq(0, 60, by = 20)) +
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+ph_survplot + ph_survplot_50
+```
+
+
+```{r}
+ph_vis5 <- ph_survplot + ph_survplot_50
+
+setwd("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis")
+
+ggsave("materials/images/ph_vis5.png", plot = ph_vis5,
+       width = 9, height = 4)
+```
+
+Figure out why this particular image is coming out smaller than all the others in powerpoint?
+
+```{r}
+set.seed(71)
+n <- 20
+
+dat_ph_20 <- sim_ph(n)
+fit_ph_20 <- survfit(Surv(time, status) ~ trt, data = dat_ph_20)
+
+ph_survplot_20 <- ggsurvplot(fit_ph_20)$plot + 
+  labs(title = "Also proportional hazards") +
+  coord_cartesian(xlim = c(0,60)) + 
+  # change x ticks to match the other plots
+  scale_x_continuous(breaks = seq(0, 60, by = 20)) +
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+ph_survplot + ph_survplot_20
+```
+
+```{r}
+ph_vis6 <- ph_survplot + ph_survplot_20
+
+setwd("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis")
+
+ggsave("materials/images/ph_vis6.png", plot = ph_vis6,
+       width = 9, height = 4)
+```
+
+## Create a "real" survival curve for the proportional hazards example
+
+```{r}
+set.seed(71)
+n <- 50000
+
+dat_ph_true <- sim_ph(n)
+fit_ph_true <- survfit(Surv(time, status) ~ trt, data = dat_ph_true)
+
+ph_survplot_true <- ggsurvplot(fit_ph_true, censor = FALSE)$plot + 
+  labs(title = "True population curves") +
+  coord_cartesian(xlim = c(0,60)) + 
+  # change x ticks to match the other plots
+  scale_x_continuous(breaks = seq(0, 60, by = 20)) +
+  theme_classic(base_size = 15) + 
+  theme(legend.position = "none")
+
+ph_survplot + ph_survplot_true
+```
+
+
+```{r}
+ph_vis7 <- ph_survplot + ph_survplot_true
+
+ggsave("materials/images/ph_vis7.png", plot = ph_vis7,
+       width = 9, height = 4)
+```
+
+
+```{r}
+ph_vis8 <- ph_survplot_true + ph_survplot_20
+ggsave("materials/images/ph_vis8.png", plot = ph_vis8,
+       width = 9, height = 4)
+```
+
+
+# Visualising baseline hazard rates
+
+Create a series of plots, adding a new hazard rate each time
+h(t) on the y axis, t on the x axis
+
+Start with constant hazard
+
+```{r}
+constant_hazard <- function(t) {
+  lambda <- 0.10
+  return(rep(lambda, length(t)))
+}
+
+baseline_h <- ggplot(data.frame(t = seq(0, 20, by = 1)), aes(x = t)) +
+  stat_function(fun = constant_hazard, color = "#0072CF", linewidth = 1) +
+  labs(title = "Constant hazard rate", x = "Time", y = "Hazard rate h(t)") +
+  theme_classic(base_size = 15) +
+  ylim(0.06, 0.16)
+
+baseline_h
+```
+
+Add a decreasing hazard
+```{r}
+decreasing_hazard <- function(t) {
+  lambda <- 0.20
+  HR_start <- 0.8
+  HR_end <- 0.30
+  scale <- 10
+
+  # Smoothly changing HR:
+  # HR_start at t = 0
+  # approaches HR_end as t increases
+  HR <- function(t) {
+    HR_end + (HR_start - HR_end) * exp(-t / scale)
+  }
+
+  return(lambda * HR(t))
+}
+
+baseline_h_2 <- ggplot(data.frame(t = seq(0, 20, by = 1)), aes(x = t)) +
+  stat_function(fun = constant_hazard, color = "grey", linewidth = 1) +
+  stat_function(fun = decreasing_hazard, color = "#0072CF", linewidth = 1) +
+  labs(title = "Decreasing hazard rate", x = "Time", y = "Hazard rate h(t)") +
+  theme_classic(base_size = 15)  +
+  ylim(0.06, 0.16)
+
+baseline_h_2
+```
+
+Increasing hazard
+```{r}
+increasing_hazard <- function(t) {
+  lambda <- 0.20
+  HR_start <- 0.30
+  HR_end <- 0.8
+  scale <- 8
+
+  # Smoothly changing HR
+  HR <- function(t) {
+    HR_end - (HR_end - HR_start) * exp(-t / scale)
+  }
+
+  return(lambda * HR(t))
+}
+
+baseline_h_3 <- ggplot(data.frame(t = seq(0, 20, by = 1)), aes(x = t)) +
+  stat_function(fun = constant_hazard, color = "grey", linewidth = 1) +
+  stat_function(fun = decreasing_hazard, color = "grey", linewidth = 1) +
+  stat_function(fun = increasing_hazard, color = "#0072CF", linewidth = 1) +
+  labs(title = "Increasing hazard rate", x = "Time", y = "Hazard rate h(t)") +
+  theme_classic(base_size = 15) +
+  ylim(0.06, 0.16)
+
+baseline_h_3
+```
+
+Bathtub shape - increases at first, levels out, then decreases
+```{r}
+bathtub_hazard <- function(t) {
+  hazard_min <- 0.085
+  hazard_max <- 0.135
+  
+  hazard_min + (hazard_max - hazard_min) * ((t - 10) / 10)^6
+}
+
+baseline_h_4 <- ggplot(data.frame(t = seq(0, 20, by = 1)), aes(x = t)) +
+  stat_function(fun = constant_hazard, color = "grey", linewidth = 1) +
+  stat_function(fun = decreasing_hazard, color = "grey", linewidth = 1) +
+  stat_function(fun = increasing_hazard, color = "grey", linewidth = 1) +
+  stat_function(fun = bathtub_hazard, color = "#0072CF", linewidth = 1) +
+  labs(title = "Bathtub-shaped hazard rate", x = "Time", y = "Hazard rate h(t)") +
+  theme_classic(base_size = 15) +
+  ylim(0.06, 0.16)
+
+baseline_h_4
+```
+
+```{r}
+ggsave("materials/images/baseline_hazard_rates1.png", plot = baseline_h,
+       width = 7, height = 3.5)
+
+ggsave("materials/images/baseline_hazard_rates2.png", plot = baseline_h_2,
+       width = 7, height = 3.5)
+
+ggsave("materials/images/baseline_hazard_rates3.png", plot = baseline_h_3,
+       width = 7, height = 3.5)
+
+ggsave("materials/images/baseline_hazard_rates4.png", plot = baseline_h_4,
+       width = 7, height = 3.5)
+```
+
+
+```{r}
+baseline_h_eggs <- ggplot(data.frame(t = seq(0, 20, by = 1)), aes(x = t)) +
+  stat_function(fun = increasing_hazard, color = "#0072CF", linewidth = 1) +
+  labs(title = "Baseline hazard", x = "Time", y = "Hazard rate h(t)") +
+  theme_classic(base_size = 15)  +
+  ylim(0.05, 0.5)
+
+baseline_h_eggs
+```
+
+
+```{r}
+cox_hazard <- function(t, x, beta) {
+  increasing_hazard(t) * exp(beta * x)
+}
+
+t <- seq(0, 20, length.out = 200)
+
+beta <- 0.7
+
+plot_data <- data.frame(
+  time = rep(t, 4),
+  x = factor(rep(c(0, 0.5, 1, 1.5), each = length(t)))
+)
+
+plot_data$hazard <- mapply(
+  function(time, x) {
+    increasing_hazard(time) * exp(beta * as.numeric(as.character(x)))
+  },
+  plot_data$time,
+  plot_data$x
+)
+
+baseline_h_eggs_2 <- ggplot(plot_data, aes(x = time, y = hazard, colour = x)) +
+  geom_line(linewidth = 1.2) +
+  labs(title = "Effect of weight", x = "Time", y = "Hazard rate h(t)", colour = "") +
+  theme_classic(base_size = 15) +
+  # change colours of lines and labels in legend
+  # make the colours different variations of the original blue
+  scale_color_manual(values = c("#0072CF", "#49ADFF", "#86C9FF", "#C2E4FF"), 
+                     labels = c("Light", "Medium", "Heavy", "Very heavy")) +
+  ylim(0.05, 0.5) +
+  # move legend to top left corner of plot and make it smaller
+  theme(legend.position = c(0.2, 0.9),
+        legend.key.size = unit(0.5, "cm"),
+        legend.text = element_text(size = 10))
+
+baseline_h_eggs_2
+```
+
+
+```{r}
+ggsave("materials/images/baseline_hazard_eggs.png", plot = baseline_h_eggs,
+       width = 5, height = 3.5)
+
+ggsave("materials/images/baseline_hazard_eggs2.png", plot = baseline_h_eggs_2,
+       width = 5, height = 3.5)
+```

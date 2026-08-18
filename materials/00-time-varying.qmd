@@ -1,0 +1,78 @@
+---
+title: "Evaluating a Cox model"
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+## Time-varying predictors
+
+It's worth noting that all of the examples we've discussed in this course so far feature predictors that do not vary with time.
+
+For example, whether a patient is male or female, or what age they were when they were admitted to hospital, does not change during the course of the time they're being observed.
+
+In all of our examples, we are also assuming that the *effect* of the predictors on the probability of the event occurring also does not vary with time.
+
+For example, we assume that a patient being male has the same effect on their chance to be discharged from hospital on day 1, as it does on day 30.
+
+These are two related, but distinct ideas:
+
+- Time-varying **predictors**
+- Time-varying **effects** of predictors
+
+There will be a bonus chapter later that addresses how to deal with situations where predictors vary with time.
+
+If the effect of a predictor varies with time, this will cause a violation of the proportional hazards assumption, mentioned above. Again, we will talk about this more in a subsequent chapter.
+
+## Summary
+
+Text
+
+::: callout-tip
+#### Key Points
+
+- Text
+:::

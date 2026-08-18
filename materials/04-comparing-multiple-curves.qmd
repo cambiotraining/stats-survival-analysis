@@ -191,7 +191,7 @@ results.print_summary()
 ```
 :::
 
-::: callout-caution
+::: {.callout-caution icon="false"}
 #### What does this significant p-value tell us?
 
 If a two-group log-rank test from last chapter is the analogue of a two-sample t-test, then a log-rank test with 3+ groups is the analogue of a one-way ANOVA.
@@ -212,7 +212,7 @@ It's only appropriate to run these post hoc tests **if the original log-rank tes
 
 There is a dedicated `pairwise_survdiff` function for this purpose.
 
-Notice that we have a new argument to specify: the `p.adjust.method`. 
+Notice that we have a new argument to specify: the `p.adjust.method`.
 
 I recommend using either the `holm` or `bonferroni` method here, but if you want to be more liberal, you can pick `BH` (Benjamini-Hochberg) instead.
 
@@ -239,13 +239,13 @@ This implies (in conjunction with the survival curves shown above) that the priv
 
 ## Summary
 
-The log-rank (Mantel-Cox) test can be extended to compare three or more curves. 
+The log-rank (Mantel-Cox) test can be extended to compare three or more curves.
 
 This is analogous to a one-way ANOVA in regular linear modelling, and tests the null hypothesis that all groups have come from the same underlying population.
 
 ::: callout-tip
 #### Key Points
 
--   The null hypothesis of a 3+ group log-rank test is that all groups share the same survival curve in the underlying population
--   If the initial log-rank test is significant, pairwise post hoc testing can be performed to identify which group(s) are distinct from one another
+- The null hypothesis of a 3+ group log-rank test is that all groups share the same survival curve in the underlying population
+- If the initial log-rank test is significant, pairwise post hoc testing can be performed to identify which group(s) are distinct from one another
 :::

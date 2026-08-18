@@ -66,6 +66,8 @@ You would need to use Cox regression (rather than a log-rank test) when:
 - You have more than one predictor variable
 - Your predictor variable(s) are continuous, rather than categorical
 
+In this chapter, we'll focus on the third of those points.
+
 ## The basic idea
 
 In a linear model, we predict values of a continuous outcome variable `y`. But in a Cox regression, we predict values of something called the **hazard function**.
@@ -424,7 +426,7 @@ In the LRT, we are comparing our model against a null model, i.e., a model that 
 
 ### Lung cancer {#sec-exr_lung}
 
-:::: callout-exercise
+::::::::: callout-exercise
 {{< level 2 >}}
 
 For this example, we'll use the `lung` dataset inbuilt into the `survival` package.
@@ -433,6 +435,7 @@ If you're having trouble loading it up, you can use the following code:
 
 ::: {.panel-tabset group="language"}
 ## R
+
 ```{r, force lung dataset}
 #| message: false
 #| warning: false
@@ -460,19 +463,21 @@ Note: before you get started, you will need to recode the `status` censoring var
 
 ::: {.panel-tabset group="language"}
 ## R
+
 ```{r, recode lung censoring status}
 lung <- lung %>%
   mutate(status = recode(status, `1`=0, `2`=1))
 ```
 :::
 
-::: callout-answer
+:::::: callout-answer
 ##### Age predictor
 
 Let's start by focusing on the `age` research question first.
 
 ::: {.panel-tabset group="language"}
 ## R
+
 ```{r, lung survival by age}
 cox_lung_age <- coxph(Surv(time, status) ~ age, 
                   data = lung)
@@ -497,6 +502,7 @@ Now let's look at the `wt.loss` predictor.
 
 ::: {.panel-tabset group="language"}
 ## R
+
 ```{r, lung survival by wtloss}
 cox_lung_wt <- coxph(Surv(time, status) ~ wt.loss, 
                   data = lung)
@@ -519,21 +525,22 @@ Finally, let's look at what happens when we include both predictors in the model
 
 ::: {.panel-tabset group="language"}
 ## R
+
 ```{r, lung survival by age and wtloss}
 cox_lung <- coxph(Surv(time, status) ~ age + wt.loss, 
                      data = lung)
 
 summary(cox_lung)
 ```
-::::
+:::
 
 Our hazard ratios haven't changed *very* much, but they are not identical.
 
 So: yes! Including both predictors together does change things (a bit).
 
 In later chapters, we'll look at models with multiple predictors. But if you're the type who likes thinking ahead, you can use what you already know about linear modelling to start thinking about *why* this change might've occurred, and whether our two-predictor model might be better.
-:::
-::::
+::::::
+:::::::::
 
 ## Summary
 
