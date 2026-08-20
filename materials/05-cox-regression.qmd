@@ -87,7 +87,7 @@ It might be helpful, however, to return to some of these ideas when the concept 
 ::: {.callout-note collapse="true"}
 #### The survival function
 
-There is a random variable $T$ that represents a subject's true time-to-event (often referred to as "survival time"). We can't always observe $T$ directly because of censoring.
+There is a random variable $T$\$T\$ that represents a subject's true time-to-event (often referred to as "survival time"). We can't always observe $T$ directly because of censoring.
 
 We also have $t$, which just represents time passing in its normal fashion (we won't get into any relativity here, don't worry...)
 

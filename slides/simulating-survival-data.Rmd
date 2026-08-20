@@ -1475,3 +1475,176 @@ ggsave("materials/images/baseline_hazard_eggs.png", plot = baseline_h_eggs,
 ggsave("materials/images/baseline_hazard_eggs2.png", plot = baseline_h_eggs_2,
        width = 5, height = 3.5)
 ```
+
+# Exercises - log-ranks/survival curves
+
+## Leaves falling
+
+```{r}
+set.seed(71)
+
+# Sample size
+n <- 43
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.05
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda)
+time <- rexp(n, rate = lambda)
+
+# Random censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time) # using ceiling rather than round prevents left-censored events
+
+leaves <- data.frame(
+  days = observed_time,
+  fallen = event
+)
+```
+
+```{r}
+write_csv(leaves, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/leaves.csv")
+```
+
+
+## Mechanical parts failures
+
+```{r}
+set.seed(71)
+
+# Sample size
+n <- 68
+
+# Define true coefficient (log-hazard ratio)
+beta_manufacturer <- 0.4     # Manufacturer B has a higher failure hazard
+
+# Covariate
+manufacturer <- rbinom(n, 1, 0.5)       # binary (0 = A, 1 = B)
+
+# Linear predictor
+lin_pred <- manufacturer * beta_manufacturer
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.03
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Random censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time) # using ceiling rather than round prevents left-censored events
+
+parts <- data.frame(
+  time = observed_time,
+  failed = event,
+  manufacturer = factor(manufacturer, labels = c("A", "B"))
+)
+```
+
+```{r}
+write_csv(parts, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/parts.csv")
+```
+
+## Fruit
+
+Bananas vs oranges
+```{r}
+set.seed(71)
+
+# Sample size
+n <- 38
+
+# Define true coefficient (log-hazard ratio)
+beta_fruit <- 0.7     # bananas have a higher hazard of going off
+
+# Covariate
+fruit <- rbinom(n, 1, 0.5)       # binary (0 = orange, 1 = banana)
+
+# Linear predictor
+lin_pred <- fruit * beta_fruit
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.05
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Random censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+fruit_bowl <- data.frame(
+  time = observed_time,
+  gone_off = event,
+  fruit = factor(fruit, labels = c("orange", "banana"))
+)
+```
+
+Bananas, oranges & apples
+```{r}
+set.seed(71)
+
+# Sample size
+n <- 52
+
+# Define true coefficients (log-hazard ratios)
+beta_banana <- 0.7       # bananas have the highest hazard
+beta_orange <- 0.3       # oranges have an intermediate hazard
+
+# Covariate
+fruit <- sample(
+  c("apple", "orange", "banana"),
+  size = n,
+  replace = TRUE
+)
+
+# Linear predictor
+lin_pred <- ifelse(
+  fruit == "banana", beta_banana,
+  ifelse(fruit == "orange", beta_orange, 0)
+)
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.05
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Random censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+fruit_bowl_2 <- data.frame(
+  time = observed_time,
+  gone_off = event,
+  fruit = factor(
+    fruit,
+    levels = c("apple", "orange", "banana")
+  )
+)
+```
+
+```{r}
+write_csv(fruit_bowl, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/fruit_bowl.csv")
+write_csv(fruit_bowl_2, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/fruit_bowl_2.csv")
+```
+
+
+
+

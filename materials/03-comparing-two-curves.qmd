@@ -506,6 +506,199 @@ Chances are that if you're running a log-rank test, you'll likely want to report
 |         | Only run tests that will actually address the research questions you had in mind when you designed the study in the first place.                                                                           |
 +---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+## Exercises
+
+### Mechanical parts failures (again) {#sec-exr_parts-log-rank}
+
+::: callout-exercise
+{{< level 1 >}}
+
+Let's return to the dataset from an exercise in [the previous chapter](#sec-exr_parts), `parts.csv`.
+
+Is there a significant difference in survival probabilities over time between parts made by manufacturers A versus B?
+
+*Note: there is no worked answer for this exercise, but feel free to compare your result to your neighbours!*
+:::
+
+### Fruit bowl {#sec-exr_fruit-bowl-2curves}
+
+:::::::: callout-exercise
+{{< level 2 >}}
+
+Read in the `fruit_bowl.csv` dataset.
+
+A curious customer recorded how long it took for their fresh fruit to go off.
+
+They want to know whether this differed between their two favourite fruits, bananas and oranges, while accounting for the fact that some fruits are eaten (censored) before they go off.
+
+You should:
+
+- Visualise the data
+- Find the median survival time for each fruit (do you notice any issues?)
+- Run a log-rank test, to determine whether this trend reflects a significant difference
+
+::::::: {.callout-answer collapse="true"}
+##### Answers
+
+Let's read in and visualise our data first.
+
+(Just for fun, I'm going to change the colours of the curves to match the fruits; this is optional, or you can set different colours, especially if you find the lack of contrast difficult!)
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, fruitbowl survival curve}
+#| message: false
+fruit_bowl <- read_csv("data/fruit_bowl.csv")
+
+fruit_curve <- survfit(Surv(time, gone_off) ~ fruit, data = fruit_bowl)
+
+ggsurvplot(fruit_curve,
+           conf.int = TRUE,
+           palette = c("darkorange3", "gold"))
+```
+:::
+
+The eye test would seem to imply that there is a difference, with bananas generally being quicker to go off.
+
+We can examine the medians:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, print fruitbowl surv object}
+fruit_curve
+```
+:::
+
+::: callout-warning
+##### Ah - what's happened here?
+
+We're getting an `NA` value for the oranges; why is this?
+
+Well, remember what the median represents: the time taken for 50% of the individuals in that group to experience the event.
+
+In this dataset, we never reach a point where 50% of the oranges have gone off, and so that number can't be estimated.
+
+The good news is that we're not prohibited from running the log-rank test in this case. Both groups reaching 50% survival is not one of our assumptions.
+
+In other words: it's still possible to compare the overall survival curves, even if we can't compare the medians.
+:::
+
+Let's run the log-rank test.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, logrank fruitbowl}
+survdiff(Surv(time, gone_off) ~ fruit, data = fruit_bowl)
+```
+:::
+
+The p-value falls below our significance threshold, and so here we would reject the null hypothesis.
+
+In other words, there is evidence to suggest that oranges and bananas do have distinct survival curves in the population, with bananas typically going first.
+:::::::
+
+As a bonus - and to carry you into the next chapter, where we'll revisit a version of this dataset again - are you worried about any of the assumptions of this log-rank test?
+::::::::
+
+### Practising assumption-checking {#sec-exr_assumptions}
+
+:::: callout.exercise
+{{< level 3 >}}
+
+Think through the following examples, and consider whether the assumptions of independence and/or non-informative censoring are met.
+
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+|         |                                                                                                                                 |
++=========+=================================================================================================================================+
+| 🍷      | **Wine bottles**                                                                                                                |
+|         |                                                                                                                                 |
+|         | A wine collector records each time a wine bottle in their cellar develops a fault, e.g., a crack.                               |
+|         |                                                                                                                                 |
+|         | - Event of interest: fault developing                                                                                           |
+|         | - Predictor: red vs white wine                                                                                                  |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🔋      | **Battery life**                                                                                                                |
+|         |                                                                                                                                 |
+|         | The battery life on a number of personal devices is tested, by continually using them without plugging them in until they fail. |
+|         |                                                                                                                                 |
+|         | - Event: losing charge (dropping to 0%)                                                                                         |
+|         | - Predictor: laptop vs phone                                                                                                    |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🚲      | **Bicycle tires**                                                                                                               |
+|         |                                                                                                                                 |
+|         | A group of Cambridge students record each time they experience a puncture on one of their bike tires.                           |
+|         |                                                                                                                                 |
+|         | - Event: puncture appearing                                                                                                     |
+|         | - Predictor: road vs mountain bike                                                                                              |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🏃      | **Runners in a marathon**                                                                                                       |
+|         |                                                                                                                                 |
+|         | The length of time taken for a runner to complete a marathon is recorded.                                                       |
+|         |                                                                                                                                 |
+|         | - Event: crossing finish line                                                                                                   |
+|         | - Predictor: whether they've completed a marathon before                                                                        |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🧊      | **Ice cubes**                                                                                                                   |
+|         |                                                                                                                                 |
+|         | A manufacturer is testing their new coolers, by testing how long it takes for a bunch of ice cubes to melt.                     |
+|         |                                                                                                                                 |
+|         | - Event: melting (disappearing)                                                                                                 |
+|         | - Predictor: room temperature (not in the cooler) vs in the cooler                                                              |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🍞      | **Mouldy bread**                                                                                                                |
+|         |                                                                                                                                 |
+|         | A bakery tests how long it takes for bread to go mouldy. They observe each slice from 24 loaves of bread.                       |
+|         |                                                                                                                                 |
+|         | - Event: mould is visible                                                                                                       |
+|         | - Predictor: white vs brown bread                                                                                               |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🎈      | **Balloons deflating**                                                                                                          |
+|         |                                                                                                                                 |
+|         | A bunch of balloons are inflated to the exact same diameter, and observed as they deflate.                                      |
+|         |                                                                                                                                 |
+|         | - Event: balloon drops below a given diameter                                                                                   |
+|         | - Predictor: air vs helium                                                                                                      |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🐝      | **Bees and pesticides**                                                                                                         |
+|         |                                                                                                                                 |
+|         | A number of beehives are observed, to determine how two different pesticides affect the survival of the bees inside.            |
+|         |                                                                                                                                 |
+|         | - Event: observed death                                                                                                         |
+|         | - Predictor: pesticide A vs B                                                                                                   |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+
+::: {.callout-answer collapse="true"}
+#### Answers
+
+The explanations provided here aren't detailed, and/or you may have interpreted the experiments described above a little differently, so I'd recommend talking these examples through with someone if you're not sure about any of them!
+
+However, you can use this to check whether you were on the right lines.
+
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+|    | Example               | Independence                         | Non-informative censoring                                             |
++====+=======================+======================================+=======================================================================+
+| 🍷 | Wine bottles          | ✓                                    | ✓                                                                     |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🔋 | Battery life          | ✓                                    | ✓                                                                     |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🚲 | Bicycle tires         | ✗ - tires come in pairs!             | ✓                                                                     |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🏃 | Runners in a marathon | ✓                                    | ✗ - runners who are struggling are more likely to drop out            |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🧊 | Ice cubes             | ✓                                    | ✓                                                                     |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🍞 | Mouldy bread          | ✗ - slices are grouped within loaves | ✓                                                                     |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🎈 | Balloons deflating    | ✓                                    | ✓                                                                     |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🐝 | Bees and pesticides   | ✗ - bees are grouped within hives    | ✗ - sick bees are more likely to be exiled/fail to return to the hive |
++----+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+:::
+::::
+
 ## Summary
 
 The most common method for comparing two survival curves is known as the log rank test (or more formally, the Mantel-Cox test).

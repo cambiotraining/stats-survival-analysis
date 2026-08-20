@@ -237,6 +237,123 @@ From this post hoc testing, we can see that the teaching and public hospitals do
 
 This implies (in conjunction with the survival curves shown above) that the private hospitals are the "unusual" group, being much quicker to discharge their patients. We can, of course, theorise as to why this might be the case.
 
+## Exercises
+
+### Fruit bowl (again) {#sec-exr_fruit-bowl-3curves}
+
+::::::::::: callout-exercise
+{{< level 2 >}}
+
+Last chapter, we used a log-rank test to compare [bananas to oranges](#sec-exr_fruit-bowl-2curves).
+
+The same curious customer actually repeated the experiment, with more items of fruit and also with an additional category of fruit: apples.
+
+The new data are contained in the `fruit_bowl_2.csv` file.
+
+Once again, you should:
+
+- Visualise the data (with median survival times)
+- Consider whether the assumptions are met for a log-rank test
+- Regardless of whether the assumptions are met, run a log-rank test to compare the three fruits
+- If appropriate, run post hoc tests to compare the fruits in a pairwise manner
+
+:::::::::: {.callout-answer collapse="true"}
+##### Answers
+
+:::: {.callout-note collapse="true" icon="false"}
+##### Visualising the data
+
+Once again, I'm colour-matching my fruits for fun, but this is optional!
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, fruitbowl2 survival curves}
+#| message: false
+fruit_bowl_2 <- read_csv("data/fruit_bowl_2.csv")
+
+fruit_curve_2 <- survfit(Surv(time, gone_off) ~ fruit, data = fruit_bowl_2)
+
+ggsurvplot(fruit_curve_2,
+           conf.int = TRUE,
+           palette = c("forestgreen", "darkorange3", "gold"),
+           surv.median.line = "hv")
+```
+:::
+::::
+
+::: {.callout-note collapse="true" icon="false"}
+##### Consider the assumptions
+
+There are three assumptions or considerations we want to think about. I'm going to touch on them in the following order:
+
+1.  Proportional hazards
+2.  Non-informative censoring
+3.  Independence
+
+First, **proportional hazards**. This isn't strictly a formal assumption anyway, but just by looking at the survival curves we produced above, I have no concerns here.
+
+Second, let's think about **non-informative censoring**.
+
+Here, we may have a little bit of a problem: fruit that are closer to going off (experiencing the event), are more likely to be eaten (censored)!
+
+Third, let's consider **independence**.
+
+If we think about the way this experiment likely ran in practice, there's cause for concern. Fruit are usually bought & stored in "batches" - it's unlikely this customer owned all 52 pieces of fruit simultaneously!
+
+And, since fruit within batches are likely to be more similar to each other (grown in the same place, bought at the same supermarket) and may even affect each other (bananas are known to speed up ripening of fruit around them), pieces of fruit will be more similar to other pieces of fruit *within* their batch, versus *outside* their batch. This is a problem.
+
+So, in summary:
+
+| Assumption/consideration | Met? | Reasoning |
+|-------------------------|--------|---------------------------------------|
+| Proportional hazards | ✓ | Survival curves look promising |
+| Non-informative censoring | ✗ | Fruit more likely to be censored (eaten) the closer it gets to ripening/going off |
+| Independence | ✗ | Fruit are bought and stored in batches, creating artificial similarity |
+:::
+
+:::: {.callout-note collapse="true" icon="false"}
+##### Run the log-rank test
+
+Even though we determined that the assumptions likely aren't met, let's go ahead and run a log-rank test for practice.
+
+For this, we can actually use exactly the same formula as we did in the previous fruit exercise.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, logrank fruitbowl}
+survdiff(Surv(time, gone_off) ~ fruit, data = fruit_bowl_2)
+```
+:::
+
+With p-value of 0.06, our log-rank test **just** falls above our significance threshold.
+
+Thus, in this case, we would retain the null hypothesis.
+::::
+
+:::: {.callout-note collapse="true" icon="false"}
+##### Post hoc testing
+
+Given that our log-rank test was insignificant, **we would not be justified in running further post hoc tests**.
+
+If you stopped at this point and resisted temptation, well done.
+
+Just for illustrative purposes, here's what it *would* have looked like.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, logrank fruitbowl pairwise}
+pairwise_survdiff(Surv(time, gone_off) ~ fruit, data = fruit_bowl_2)
+```
+:::
+
+Perhaps as might be expected, given our main log-rank results, none of these pairwise comparisons are significantly different (or even close to it, really).
+::::
+::::::::::
+:::::::::::
+
 ## Summary
 
 The log-rank (Mantel-Cox) test can be extended to compare three or more curves.

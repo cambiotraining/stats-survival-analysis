@@ -637,35 +637,220 @@ You might be using Kaplan-Meier curves like these simply to visualise, explore a
 
 If so, here are some best practices to follow, to be clear and transparent with your figure(s).
 
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   |                                                                                                                                                                                                     |
-+===+=====================================================================================================================================================================================================+
-| ✓ | **Always include confidence intervals**                                                                                                                                                             |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | At best, a survival curve without confidence intervals is just a bit less informative; at worst, it's actively disingenuous.                                                                        |
-|   |                                                                                                                                                                                                     |
-|   | There's no reason *not* to include the intervals - they are only ever helpful/informative!                                                                                                          |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Include & report the median survival time**                                                                                                                                                       |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | It's a small addition to the plot (you can make it visually quite unobtrusive, by making the median lines a bit fainter), but adds quite a bit of helpful info to a viewer.                         |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Include summary table with counts**                                                                                                                                                               |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | This is more commonly a risk table, but you might find the cumulative events table (or both) more useful. In either case, they give context to the curve by making the sample size(s) more obvious. |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Make sure the axes labels are clear**                                                                                                                                                             |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | Consider changing the y-axis label from "survival probability" to something more appropriate for your particular research question.                                                                 |
-|   |                                                                                                                                                                                                     |
-|   | If death is not the event of interest in your dataset, then "survival" is probably not the most helpful label.                                                                                      |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Show relevant p-values**                                                                                                                                                                          |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | It's common and often helpful to add the p-value to your survival curves, for readers' ease.                                                                                                        |
-|   |                                                                                                                                                                                                     |
-|   | In subsequent chapters, we'll look at how to calculate the p-values, and show how they can be added to the plots.                                                                                   |
-+---+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         |                                                                                                                                                                                                     |
++=========+=====================================================================================================================================================================================================+
+| ✓       | **Always include confidence intervals**                                                                                                                                                             |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         | At best, a survival curve without confidence intervals is just a bit less informative; at worst, it's actively disingenuous.                                                                        |
+|         |                                                                                                                                                                                                     |
+|         | There's no reason *not* to include the intervals - they are only ever helpful/informative!                                                                                                          |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓       | **Include & report the median survival time**                                                                                                                                                       |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         | It's a small addition to the plot (you can make it visually quite unobtrusive, by making the median lines a bit fainter), but adds quite a bit of helpful info to a viewer.                         |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓       | **Include summary table with counts**                                                                                                                                                               |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         | This is more commonly a risk table, but you might find the cumulative events table (or both) more useful. In either case, they give context to the curve by making the sample size(s) more obvious. |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓       | **Make sure the axes labels are clear**                                                                                                                                                             |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         | Consider changing the y-axis label from "survival probability" to something more appropriate for your particular research question.                                                                 |
+|         |                                                                                                                                                                                                     |
+|         | If death is not the event of interest in your dataset, then "survival" is probably not the most helpful label.                                                                                      |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓       | **Show relevant p-values**                                                                                                                                                                          |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|         | It's common and often helpful to add the p-value to your survival curves, for readers' ease.                                                                                                        |
+|         |                                                                                                                                                                                                     |
+|         | In subsequent chapters, we'll look at how to calculate the p-values, and show how they can be added to the plots.                                                                                   |
++---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+## Exercises
+
+### Falling leaves {#sec-exr_leaves}
+
+::::::: callout-exercise
+{{< level 1 >}}
+
+Read in the dataset `leaves.csv`.
+
+This is a simple dataset, capturing the number of days taken for leaves to fall from a particular branch of an oak tree over a period of time in autumn.
+
+(I like to imagine this dataset was collected by a very precocious child, looking out of their bedroom window!)
+
+You should:
+
+- Visualise a survival curve for these data
+- Determine how many leaves are still on the branch at 10 days
+- Determine how many leaves have fallen from the branch after 20 days
+
+:::::: {.callout-answer collapse="true"}
+##### Answers
+
+First, let's produce a simple Kaplan-Meier curve for the data.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, survplot fallen leaves}
+#| message: false
+leaves <- read_csv("data/leaves.csv")
+
+leaf_curve <- survfit(Surv(days, fallen) ~ 1, data = leaves)
+
+ggsurvplot(leaf_curve,
+           conf.int = TRUE)
+```
+:::
+
+To determine how many leaves are still on the branch at the 10-day mark - i.e., still "at risk" of experiencing the event - we need a risk table.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, leaves survplot risktable}
+ggsurvplot(leaf_curve,
+           conf.int = TRUE,
+           risk.table = TRUE)
+```
+:::
+
+From this, we can see that there are **`r summary(leaf_curve, times = 10)$n.risk`** still on the branch at 10 days.
+
+To determine how many leaves have fallen - i.e., experienced the event - after a specific time, we need a cumulative events table as well.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, leaves survplot cumulative}
+ggsurvplot(leaf_curve,
+           conf.int = TRUE,
+           risk.table = TRUE,
+           cumevents = TRUE)
+```
+:::
+
+From this, we can see that at the 20-day mark, **`r sum(leaf_curve$n.event[leaf_curve$time <= 20])`** have fallen from the tree.
+::::::
+:::::::
+
+### Mechanical parts failures {#sec-exr_parts}
+
+::::::: callout-exercise
+{{< level 2 >}}
+
+Read in the dataset `parts.csv`.
+
+This dataset captures the time to failure, measured in weeks, for a collection of mechanical parts in a factory. All of the parts were purchased from one of two manufacturers.
+
+You should:
+
+- Produce a pair of survival curves, stratified by manufacturer
+- Determine the difference in medians between the two curves
+
+{{< level 3 >}}
+
+As a bonus - this is tricky!
+
+- Determine how many parts in the dataset have been censored by week 20
+
+(Hint: try using `parts_surv$n.censor` syntax to directly query the numbers in your survival object.)
+
+:::::: {.callout-answer collapse="true"}
+##### Answers
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, mechparts survival curve}
+#| message: false
+parts <- read_csv("data/parts.csv")
+
+parts_curve <- survfit(Surv(time, failed) ~ manufacturer, data = parts)
+
+ggsurvplot(parts_curve,
+           conf.int = TRUE)
+```
+:::
+
+For determining the difference in medians, you have two options.
+
+One is to examine the curves with median lines added, and to attempt to read your answer from there - but as you can see, this is not necessarily very precise.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, mechparts survival with medians}
+ggsurvplot(parts_curve,
+           conf.int = TRUE,
+           surv.median.line = "hv")
+```
+
+A more elegant solution, however, is to just extract the two medians from the survival object you've created.
+
+```{r, mechparts survival object}
+parts_curve
+```
+:::
+
+```{r, extract medians from mechparts survival object}
+#| echo: false
+median_A <- unname(summary(parts_curve)$table[, "median"][1])
+median_B <- unname(summary(parts_curve)$table[, "median"][2])
+median_diff_parts <- abs(median_A - median_B)
+```
+
+From this, we can see that the difference is **`r median_diff_parts`** weeks, implying that parts from manufacturer A typically last longer before failing.
+
+##### Bonus: censored events
+
+::: {.panel-tabset group="language"}
+## R
+
+In `survival`, you can inspect the survival object in a couple of different ways, which give you different levels of detail:
+
+```{r, print mechparts survival object summary}
+# Simpler
+parts_curve
+
+# More detailed
+summary(parts_curve)
+```
+
+One column that isn't shown by default, however, is the number of individuals in the dataset that have been censored - but this information *is* being stored.
+
+You can access it like this:
+
+```{r, mechparts extract n.censor}
+parts_curve$n.censor
+
+# Here's how to build the information into a larger dataframe, for readability:
+data.frame(
+  time = parts_curve$time,
+  n_risk = parts_curve$n.risk,
+  n_event = parts_curve$n.event,
+  n_censor = parts_curve$n.censor
+)
+```
+
+You could count manually using the above - but it'll be slow!
+
+Here's some code you could use to get R to total it all up for you:
+
+```{r, mechparts sum n.censor}
+# Extract only the censoring events that happen before time = 20
+parts_curve$n.censor[parts_curve$time <= 20]
+
+# Wrap this inside a sum() function to get the total
+sum(parts_curve$n.censor[parts_curve$time <= 20])
+```
+
+And so we see that **`r sum(parts_curve$n.censor[parts_curve$time <= 20])`** parts have been removed from the study without experiencing failure, by week 20.
+:::
+::::::
+:::::::
 
 ## Summary
 
@@ -677,5 +862,5 @@ One of the most common ways to visualise time-to-event (survival) data is via Ka
 - A Kaplan-Meier survival curve plots `time` against the estimated `survival probability` (calculated using the Kaplan-Meier estimator)
 - You can fit a Kaplan-Meier curve for the entire dataset, or stratify by one or more categorical predictors
 - You should always include confidence intervals for your curves
-- Other helpful features include the median survival time and risk tables/cumulative event tables
+- Other helpful features include the median survival time and risk tables/cumulative event information, which you can include on the plot or extract from the survival object directly
 :::
