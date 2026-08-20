@@ -223,7 +223,7 @@ hospital_stays.head()
 ```
 :::
 
-#### Log-rank test by surgery
+#### Log-rank test by surgery {#sec-surgery-log-rank}
 
 When we stratified by `surgery` in the previous chapter, we got curves that looked like this:
 

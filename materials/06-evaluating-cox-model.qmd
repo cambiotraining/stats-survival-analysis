@@ -52,7 +52,7 @@ from lifelines.statistics import pairwise_logrank_test
 :::
 ::::
 
-## The model
+## The models
 
 Very briefly, let's recreate the model from last chapter using our `hospital_stays.csv` dataset.
 
@@ -69,8 +69,6 @@ hospital_stays <- read_csv("data/hospital_stays.csv")
 
 cox_hosp <- coxph(Surv(time, discharged) ~ age,
                   data = hospital_stays)
-
-summary(cox_hosp)
 ```
 :::
 
@@ -92,13 +90,15 @@ So, if the model predicted that patient A had a higher risk than patient B of ex
 
 ![Checking concordance in a pair of observations](images/concordance-diagram.png){fig-align="center" width="1500"}
 
-Each possible pair in the dataset is checked; so if a dataset contains 20 observations, this means 190 pairwise comparisons.
+Here's how concordance is calculated:
 
-If the model gets everything completely perfect, we would see a concordance of 1. If the model is doing no better than random guessing, we would see a concordance of 0.5.
+- Each possible pair in the dataset is checked; so, if a dataset contains 20 observations, this means 190 pairwise comparisons.
+- If the model gets everything completely perfect, we would see a concordance of 1.
+- If the model is doing no better than random guessing, we would see a concordance of 0.5.
 
 A concordance of around 0.7 as we see in our model above suggests that for a randomly selected pair of patients, the model correctly predicts who is discharged first 70% of the time.
 
-In other words, concordance measures how good the model is at ordering individuals, in terms of when they are likely to experience the event of interest.
+In other words, **concordance measures how good the model is at ordering individuals**, in terms of when they are likely to experience the event of interest.
 
 ## Assumptions
 
@@ -114,7 +114,7 @@ The others we will explore more here:
 - Linearity
 - Proportional hazards
 
-### Linearity
+## Linearity
 
 Although a Cox model is not itself linear, it does contain a linear bit in it, which we are transforming/embedding inside a non-linear equation. And we do still need that linear bit to actually be linear.
 
@@ -124,7 +124,7 @@ So, if you plotted the predictor variable against the log hazard, we expect a st
 
 We only need to concern ourselves with linearity for continuous predictors (not categorical ones).
 
-#### Martingale residuals plots
+### Martingale residuals plots
 
 The most common method for checking linearity in Cox regression is by plotting something called the Martingale residuals.
 
@@ -213,7 +213,6 @@ In both of these cases, we would probably want to perform some kind of transform
 #| echo: false
 #| message: false
 #| warning: false
-#| 
 ggcoxfunctional(Surv(time, status) ~ x, data = data_bad)
 ggcoxfunctional(Surv(time, status) ~ x, data = data_bad2)
 ```
@@ -229,8 +228,10 @@ The `survminer` package comes built-in with a function for producing the Marting
 Here it is, applied to our continuous `age` predictor variable:
 
 ```{r, martingale residuals plot}
-ggcoxfunctional(Surv(time, discharged) ~ age,
-                  data = hospital_stays)
+#| message: false
+ggcoxfunctional(cox_hosp, type = "martingale")
+
+ggcoxdiagnostics(cox_hosp, type = "martingale")
 ```
 
 This function automatically creates a plot for each of the continuous predictors specified. In our example we only have one, `age`.
@@ -244,22 +245,123 @@ Our line above is not perfectly straight, but it is always decreasing, with no s
 This is a pretty good plot! It's likely that the linearity assumption is met.
 :::
 
-### Proportional hazards
+## Proportional hazards
 
 In a [previous section](#sec-proportional-hazards-1), the idea of proportional hazards was introduced in the context of the log-rank test.
 
-Cox regression includes proportional hazards as a formal assumption.
+Cox regression includes proportional hazards as a formal assumption, so we'll go over it in more detail here, along with several different methods for checking it.
 
-#### What are proportional hazards?
+### What are proportional hazards?
 
-#### Inspecting the survival curves
+The formal definition of proportional hazards is that the ratio of the hazard rates between any two groups, or between any two individuals, remains constant over time.
+
+So, if group A has double the risk of death compared to group B on day 1, then they must also have double the risk of death on day 2, day 10, day 100, and so on.
+
+### Inspecting the survival curves
+
+One of the easiest methods for checking proportional hazards quickly is via the survival curves themselves.
+
+This is most effective when the dataset is large enough to produce curves that are quite smooth; in smaller datasets, the "staircase" effect is stronger, and curves will often naturally look like they're criss-crossing even when the hazards are actually proportional.
+
+![](images/clipboard-1602678661.png)
+
+However, examining the survival curves like this is only really helpful for categorical predictors - as we [discussed last chapter](#sec-continuous-curves), things get tricky with continuous predictors such as `age`.
+
+Just to get a sense of how we *could* use this visual approach, let's examine a model that uses `surgery` instead of `age` as a predictor.
+
+::: {.panel-tabset group="language"}
+## R
+
+Note: we have to use the `survfit` function, rather than the `coxph` function, to create an object that can then be passed to the `ggsurvplot` function.
+
+However, once we've checked the proportional hazards, we could run `coxph(Surv(time, discharged) ~ surgery` just fine - check out \[last chapter's exercise\](#sec-exr_cox-vs-logrank) for the proof!
+
+```{r, create coxph for surgery predictor}
+#| echo: false 
+#| message: false 
+hosp_surgery_surv <- survfit(Surv(time, discharged) ~ surgery, data = hospital_stays) 
+
+ggsurvplot(hosp_surgery_surv)
+```
+:::
+
+I'd say those curves look pretty good! There's no obvious crossing over, delays, or "catching up" that would raise any red flags just from the eye test.
 
 #### Log-log plots
 
-#### Schoenfeld residuals
+Sometimes, it's helpful to have a "second view" of our survival curves - for example, creating a log-log survival curves.
+
+These curves have the logarithm of time on the x-axis, and the logarithm of survival probability on the y-axis (instead of the raw time and survival probability).
+
+You are hoping to see **approximately parallel log-log curves**, if the hazards truly are proportional.
+
+As with the regular survival curves, however, this doesn't work very well for a continuous predictor like `age` - here's the proof:
+
+::: {.panel-tabset group="language"}
+## R
+
+Re-fit the model using `survfit` instead of `coxph`:
+
+```{r, refit cox age model with survfit}
+hosp_age_surv <- survfit(Surv(time, discharged) ~ age, data = hospital_stays)
+```
+
+Then, make use of the `plot` function combined with a specific `fun = "cloglog` argument:
+
+```{r, cloglog check ph for age}
+plot(hosp_age_surv, fun = "cloglog")
+```
+:::
+
+In our log-log plot above, it's kind of hard to tell whether the lines are parallel or not, because there's so many of them and they intersect with each other. Not helpful.
+
+Here's the log-log survival plot for a Cox regression with `surgery` instead of `age` as a predictor, where this visual approach is much more helpful:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, cloglog check ph for surgery}
+#| echo: false
+#| message: false
+
+plot(hosp_surgery_surv, fun = "cloglog")
+```
+:::
+
+This looks pretty good! Our two log-log survival curves stratified by `surgery` look more or less parallel, give or take a bit of noisiness as you would expect to see.
+
+### Schoenfeld residuals
+
+For a different approach that doesn't rely on survival curves - and is therefore much more applicable to continuous predictors - we can examine something called the Schoenfeld residuals.
+
+These residuals are calculated **per event** (or, per row of the dataset, excluding censored individuals). Broadly speaking, they capture the difference between:
+
+- the actual observed value of the predictor(s) for the individual when they experienced the event
+- the expected value of the predictor(s) if the model were correct
+
+When we plot these residuals, we want to see **no systematic pattern** in the residuals at all. We're looking for a cloud of data points with no correlation, with a trend that is flat around 0.
+
+This is very similar to what we're looking for in a residual plot for a standard linear model.
+
+Let's visualise the Schoenfeld residuals for our Cox regression with `age` as a predictor:
+
+::: {.panel-tabset group="language"}
+## R
+
+The `ggcoxdiagnostics` function from the `survminer` package, which we used earlier for the Martingale residuals plot, can also be used to produce Schoenfeld residuals plots.
+
+All you have to do is tweak the `type` argument.
+
+```{r}
+#| message: false
+ggcoxdiagnostics(cox_hosp, type = "schoenfeld")
+```
+:::
+
+This looks good! The blue trend line is very close to the red "goal" line and there are no obvious patterns I can see in the cloud of black data points.
 
 ::: {.callout-note collapse="true" icon="false"}
-#### Cox regression is "semi-parametric"
+### Bonus: Cox regression is "semi-parametric"
 
 If you do any of your own reading about the assumptions of Cox regression, you may encounter people describing it as "semi-parametric".
 
@@ -276,32 +378,69 @@ There are no assumptions being made about the distribution of the raw time data 
 However, we do make an assumption about the hazards being **proportional**, and that's where the parametric part comes in. Hence, "semi-parametric".
 :::
 
-## Bonus: Comparing to the log-rank test
+## Exercises
 
-So far in this chapter, we've used Cox regression to model continuous predictors, but it also works for categorical predictors too.
+### Lung cancer (revisited) {#sec-exr_lung-evaluation}
 
-Let's recreate one of the analyses from a previous chapter, where we performed a log rank test on the `hospital_stays` dataset, for the `surgery` predictor, and compare it to a Cox regression with `surgery` as a predictor.
+::: callout-exercise
+{{< level 2 >}}
+
+In the last chapter, you fitted several Cox regression models to the [lung cancer](#sec-exr_lung) dataset.
+
+Now, we'll evaluate them!
+
+For each of the three models (`age` alone, `wtloss` alone, and both), you should:
+
+- Assess concordance
+- Check the Martingale residuals to determine linearity
+- Check the Schoenfeld residuals to assess proportional hazards
+
+**Which of the three models is best, in your opinion?**
+
+::: {.callout-answer collapse="true"}
+#### Answers
 
 ::: {.panel-tabset group="language"}
 ## R
 
-```{r, log rank vs cox regression}
-survdiff(Surv(time, discharged) ~ surgery, data = hospital_stays)
+First, let's recreate the three models.
 
-cox_surgery <- coxph(Surv(time, discharged) ~ surgery,
-                  data = hospital_stays)
+```{r}
+lung_age_only <- coxph(Surv(time, status) ~ age, data = lung)
+lung_wt_only <- coxph(Surv(time, status) ~ wt.loss, data = lung)
+lung_both <- coxph(Surv(time, status) ~ age + wt.loss, data = lung)
+```
 
-summary(cox_surgery)
+Then, we'll start by looking at their concordance scores.
+
+I'm using `$concordance` to extract just the scores here, so as not to clog up the screen, but you can also print the full summary and read these values out from there.
+
+```{r}
+summary(lung_age_only)$concordance
+summary(lung_wt_only)$concordance
+summary(lung_both)$concordance
+```
+
+They all have quite similar concordance scores, a little above the 0.5 chance level. The model with both predictors is the best of the three here.
+
+Now, let's look at the Martingale residuals, for linearity.
+
+```{r}
+ggcoxdiagnostics(lung_age_only, type = "martingale")
+ggcoxdiagnostics(lung_wt_only, type = "martingale")
+ggcoxdiagnostics(lung_both, type = "martingale")
+```
+
+Finally, let's have a look at the Schoenfeld residuals, for proportional hazards.
+
+```{r}
+ggcoxdiagnostics(lung_age_only, type = "schoenfeld")
+ggcoxdiagnostics(lung_wt_only, type = "schoenfeld")
+ggcoxdiagnostics(lung_both, type = "schoenfeld")
 ```
 :::
-
-The numbers are not identical, but pretty similar! This isn't an accident.
-
-In particular, the log rank test is effectively recreating the score test (at the bottom of the Cox regression output).
-
-There are *tiny* differences in how the two tests calculate things, but they are achieving essentially the same thing.
-
-So the log rank test behaves a little bit like a special case of Cox regression, in the same way that a t-test is a special case of a linear model.
+:::
+:::
 
 ## Summary
 

@@ -352,23 +352,27 @@ Underneath that is where we start to get into the interpretation.
 
 We've been provided with a row of quantities corresponding to our single predictor variable `age`. The most important one to focus on is the hazard ratio, which is the `exp(coef)` value.
 
-It's not essential to understand how it's calculated, but if you're curious, you can open the drop-down below for more information.
+In the context of a continuous predictor variable, as we have here, the hazard ratio measures **the change in the instantaneous risk of an event occurring for each one-unit increase in that variable**, assuming everything else stays constant.
 
-\[INSERT DROP DOWN\]
+In other words, for each additional year of `age`, how much does the "risk" of being discharged from hospital change?
 
-The most important thing to know is how to interpret this hazard ratio.
+::: {.callout-note icon="false"}
+### As a general rule
 
-In the context of a continuous predictor variable, as we have here, the hazard ratio measures the change in the instantaneous risk of an event occurring for each one-unit increase in that variable, assuming everything else stays constant.
-
-In other words, for each additional year of `age`, how much does the "risk" of being discharged from hospital change? When:
+When:
 
 - HR = 1, this implies that the predictor has no effect on the risk
 - HR \> 1, risk is increased as the predictor increases
 - HR \< 1, risk is decreased as the predictor increases
+:::
 
-In our example here, our hazard ratio is 0.9483. This tells us that each one-year increase in age is associated with a "risk" of hospital discharge that is 0.9483 times as large (about 5.2% lower) than that of someone one year younger. (So, being younger gets you discharged a tiny bit quicker.)
+In our example here, our hazard ratio is 0.9483.
 
-::: {.callout-warning appearance="minimal" icon="false"}
+This tells us that each one-year increase in age is associated with a "risk" of hospital discharge that is 0.9483 times as large (about 5.2% lower) than that of someone one year younger.
+
+So, being younger gets you discharged a tiny bit quicker.
+
+::: {.callout-important icon="false"}
 #### How did I calculate that % change?
 
 Like so:
@@ -422,16 +426,66 @@ This means that **the best option of the three is the likelihood ratio test**.
 
 In the LRT, we are comparing our model against a null model, i.e., a model that contains no predictors at all. So we are asking whether our set of predictors, overall, does a better job of explaining our data than having no predictors at all.
 
+## Survival curve(s) for a continuous predictor {#sec-continuous-curves}
+
+The standard Kaplan-Meier curves that we've been looking at so far are only applicable for categorical predictors.
+
+If we want to visualise a survival curve for a continuous predictor, we have to do a little more work.
+
+One option is to visualise a set of survival curves at specific quantiles (e.g., 25th, 50th and 75th quantile) of our continuous predictor.
+
+Effectively, we are turning our continuous predictor into a categorical predictor for the purpose of plotting. This does lose us some information, but you might prefer it to not being able to visualise at all!
+
+Here's how you might code it:
+
+::: {.panel-tabset group="language"}
+## R
+
+##### Step 1: Find specific percentiles for `age` predictor
+
+```{r}
+age_vals <- quantile(hospital_stays$age, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
+```
+
+##### Step 2: Create a new data frame
+
+We need to hold any other predictor variables in our dataset constant, e.g., at their mean.
+
+```{r}
+new_data <- data.frame(
+  age = age_vals,
+  sex = mean(hospital_stays$sex),
+  surgery = mean(hospital_stays$surgery),
+  weekend_admission = mean(hospital_stays$weekend_admission,
+  hospital_type = mean(hospital_stays$hospital_type))
+)
+```
+
+##### Step 3: Compute survival curves for these values
+
+```{r}
+hosp_curve_adjust <- survfit(cox_hosp, newdata = new_data)
+```
+
+##### Step 4: Plot the curves
+
+```{r}
+ggsurvplot(hosp_curve_adjust, data = hospital_stays)
+```
+
+As we might expect, we see that younger patients (red) are getting discharged quicker than older patients (blue).
+:::
+
 ## Exercises
 
 ### Lung cancer {#sec-exr_lung}
 
-::::::::: callout-exercise
+:::::::::::: callout-exercise
 {{< level 2 >}}
 
 For this example, we'll use the `lung` dataset inbuilt into the `survival` package.
 
-If you're having trouble loading it up, you can use the following code:
+You should be able to just call it as if it's already in your environment, or using `data(lung)`, but if you're having trouble loading it up, you can use the following code:
 
 ::: {.panel-tabset group="language"}
 ## R
@@ -453,12 +507,6 @@ This is a complex dataset with a lot of predictors. Key ones include:
 - `age`: given in years
 - `wt.loss`: weight loss over the last six months (in pounds, lbs)
 
-For this exercise, you should try to answer the following questions using Cox regression and the hazard ratios:
-
-1.  How much is the hazard increased by a 5-year age increase?
-2.  How much is the hazard increased by a 5lb weight loss?
-3.  Do the hazard ratios change for each predictor if you include them in a model simultaneously (versus a separate model for each)?
-
 Note: before you get started, you will need to recode the `status` censoring variable, as it's been coded in a non-standard way in this dataset:
 
 ::: {.panel-tabset group="language"}
@@ -470,7 +518,14 @@ lung <- lung %>%
 ```
 :::
 
-:::::: callout-answer
+For this exercise, you should try to answer the following questions using Cox regression and the hazard ratios:
+
+1.  Produce a model with `age` only as a predictor. How much is the hazard increased by a 5-year age increase?
+2.  Produce a model with `wtloss` only as a predictor. How much is the hazard increased by a 5lb weight loss?
+3.  Do the hazard ratios and/or likelihood ratio test results change for each predictor if you include them in a model simultaneously, versus a separate model for each?
+
+::::::::: callout-answer
+:::: {.callout-note collapse="true" icon="false"}
 ##### Age predictor
 
 Let's start by focusing on the `age` research question first.
@@ -495,7 +550,9 @@ If I want to know how this compounds over 5 years, I raise my hazard ratio to th
 $1.018897^5 = 1.098124$
 
 which corresponds to a 9.8% increase in hazard.
+::::
 
+:::: {.callout-note collapse="true" icon="false"}
 ##### Weight loss predictor
 
 Now let's look at the `wt.loss` predictor.
@@ -518,7 +575,9 @@ Even if we look at how this stacks for a 5lb weight loss:
 $1.001320^5 = 1.006617$
 
 this is only a \~0.7% increase.
+::::
 
+:::: {.callout-note collapse="true" icon="false"}
 ##### Both predictors
 
 Finally, let's look at what happens when we include both predictors in the model simultaneously (without an interaction, to keep things simple).
@@ -536,11 +595,67 @@ summary(cox_lung)
 
 Our hazard ratios haven't changed *very* much, but they are not identical.
 
-So: yes! Including both predictors together does change things (a bit).
+Our p-value for the combined model also looks different to the p-values we were getting individually:
 
-In later chapters, we'll look at models with multiple predictors. But if you're the type who likes thinking ahead, you can use what you already know about linear modelling to start thinking about *why* this change might've occurred, and whether our two-predictor model might be better.
-::::::
+- Alone, `age` was marginally significant with a p-value of 0.04
+- While `wtloss` was not significant, with a p-value of 0.8
+- In the combined model, we have a (marginally?) insignificant result of 0.07
+
+So the short answer to the third question of this exercise is: **yes!** Including both predictors together does change things.
+
+In later chapters, we'll look more at models with multiple predictors. But if you're the type who likes thinking ahead, you can use what you already know about linear modelling to start thinking about *why* this change might've occurred, and whether our two-predictor model might be better than our single-predictor offerings.
+::::
 :::::::::
+::::::::::::
+
+### Cox regression versus log-rank {#sec-exr_cox-vs-logrank}
+
+::: callout-exercise
+{{< level 3 >}}
+
+So far in this chapter, we've used Cox regression to model continuous predictors.
+
+Let's see what happens if we try it out on a categorical predictor instead.
+
+Let's return to the `hospital_stays` dataset; in a [previous chapter](#sec-surgery-log-rank) we used a log-rank test to investigate the effect of surgery.
+
+Recreate this log-rank test, and then compare it to a Cox regression with `surgery` as a predictor.
+
+Do you get different results?
+
+::: {.callout-answer collapse="true"}
+##### Answer
+
+::: {.panel-tabset group="language"}
+## R
+
+First, we run the log-rank test:
+
+```{r, log rank vs cox regression for surgery}
+hospital_stays <- read_csv("data/hospital_stays.csv")
+
+survdiff(Surv(time, discharged) ~ surgery, data = hospital_stays)
+```
+
+And now, the Cox regression. 
+
+Note that we don't need to do anything different syntax-wise, even though `surgery` is categorical rather than continuous - just as with the `lm` function in linear modelling.
+
+```{r, log rank vs cox regression for surgery 2}
+cox_surgery <- coxph(Surv(time, discharged) ~ surgery, data = hospital_stays)  
+summary(cox_surgery)
+```
+:::
+
+The numbers are not identical, but pretty similar! This isn't an accident.
+
+In particular, the log-rank test is effectively recreating the score test (at the bottom of the Cox regression output).
+
+There are *tiny* differences in how the two tests calculate things, but they are achieving essentially the same thing.
+
+So the log-rank test behaves a little bit like a special case of Cox regression, in the same way that a t-test is a special case of a linear model.
+:::
+:::
 
 ## Summary
 
@@ -553,5 +668,5 @@ When interpreting a Cox model, we can look at individual predictors or the model
 
 - Cox regression can be used to model survival (time-to-event) data when we have a continuous predictor
 - In Cox regression, we are most interested in interpreting the hazard ratio, which tells us about the increase in hazard/risk as our predictor changes
-- We can also extract p-values in multiple ways from a Cox model, with slightly different interpretations
+- We can also extract p-values in multiple ways from a Cox model, with slightly different interpretations; the likelihood ratio test is preferred
 :::
