@@ -80,9 +80,9 @@ Last chapter, we looked at:
 
 However, interpreting all of those numbers and tests from the model summary requires us to be confident that this model is the *right choice* for these data. How can we assess whether that's the case?
 
-## Concordance
+## Concordance {#sec-concordance}
 
-One of the numbers in the output that we can use is concordance. This is a measure of goodness-of-fit, or predictive accuracy. It's analogous to (but not quite the same as) $R^2$\$R\^2\$\$R\^2\$ in linear models.
+One of the numbers in the output that we can use is concordance. This is a measure of goodness-of-fit, or predictive accuracy. It's analogous to (but not quite the same as) $R^2$ in linear models.
 
 It is calculated by taking each possible pair of individuals in the dataset and ranking their actual survival times, and then comparing it to what the model predicted their risks/survival times to be.
 
@@ -147,6 +147,8 @@ These are perhaps the best you're likely to see, especially the first one. Notic
 #| echo: false
 #| message: false
 #| warning: false
+
+set.seed(712)
 
 n <- 300
 x_good <- rnorm(n)
@@ -230,8 +232,6 @@ Here it is, applied to our continuous `age` predictor variable:
 ```{r, martingale residuals plot}
 #| message: false
 ggcoxfunctional(cox_hosp, type = "martingale")
-
-ggcoxdiagnostics(cox_hosp, type = "martingale")
 ```
 
 This function automatically creates a plot for each of the continuous predictors specified. In our example we only have one, `age`.
@@ -244,6 +244,43 @@ Our line above is not perfectly straight, but it is always decreasing, with no s
 
 This is a pretty good plot! It's likely that the linearity assumption is met.
 :::
+
+:::: {.callout-important collapse="true"}
+#### Caveats and common issues {#sec-martingale-caveats}
+
+Producing these Martingale plots does not always go smoothly.
+
+If you attempt to run the `ggcoxfunctional` functional and get an error, you might find that one of the two issues is at play:
+
+1.  You have a categorical predictor; this function/method only works for continuous predictors
+2.  There are missing values of your continuous predictor in the dataset
+
+If you're facing issue #2, there is something you can do to fix it.
+
+Let's imagine that there are missing values of `age` in our `hospital_stays` dataset. Here's how we could tackle that to still produce a Martingale residuals plot of the type shown above:
+
+::: {.panel-tabset group="language"}
+## R
+
+First, we create a new version of the dataset with all missing values removed.
+
+```{r, removing NAs for Martingale demo}
+#| message: false
+hospital_stays_narm <- na.omit(hospital_stays)
+```
+
+Then, we can refit the model using this reduced dataset, and from there, run `ggcoxfunctional` successfully.
+
+```{r, removing NAs for Martingale demo create plot}
+#| message: false
+cox_hosp_narm <- coxph(Surv(time, discharged) ~ age, data = hospital_stays_narm)
+
+ggcoxfunctional(cox_hosp_narm, data = hospital_stays_narm)
+```
+:::
+
+(In this example, the plot looks identical, because we didn't actually have any missing values!)
+::::
 
 ## Proportional hazards
 
@@ -274,10 +311,9 @@ Just to get a sense of how we *could* use this visual approach, let's examine a 
 
 Note: we have to use the `survfit` function, rather than the `coxph` function, to create an object that can then be passed to the `ggsurvplot` function.
 
-However, once we've checked the proportional hazards, we could run `coxph(Surv(time, discharged) ~ surgery` just fine - check out \[last chapter's exercise\](#sec-exr_cox-vs-logrank) for the proof!
+However, once we've checked the proportional hazards, we could run `coxph(Surv(time, discharged) ~ surgery` just fine - check out the [second exercise from last chapter](#sec-exr_cox-vs-logrank) for the proof!
 
 ```{r, create coxph for surgery predictor}
-#| echo: false 
 #| message: false 
 hosp_surgery_surv <- survfit(Surv(time, discharged) ~ surgery, data = hospital_stays) 
 
@@ -348,9 +384,9 @@ Let's visualise the Schoenfeld residuals for our Cox regression with `age` as a 
 ::: {.panel-tabset group="language"}
 ## R
 
-The `ggcoxdiagnostics` function from the `survminer` package, which we used earlier for the Martingale residuals plot, can also be used to produce Schoenfeld residuals plots.
+The `ggcoxdiagnostics` function from the `survminer` package can be used to produce Schoenfeld residuals plots without any extra work needed from you.
 
-All you have to do is tweak the `type` argument.
+Make sure to set the `type` argument equal to `"schoenfeld"`.
 
 ```{r}
 #| message: false
@@ -360,7 +396,7 @@ ggcoxdiagnostics(cox_hosp, type = "schoenfeld")
 
 This looks good! The blue trend line is very close to the red "goal" line and there are no obvious patterns I can see in the cloud of black data points.
 
-::: {.callout-note collapse="true" icon="false"}
+::: {.callout-tip collapse="true" icon="false"}
 ### Bonus: Cox regression is "semi-parametric"
 
 If you do any of your own reading about the assumptions of Cox regression, you may encounter people describing it as "semi-parametric".
@@ -382,7 +418,7 @@ However, we do make an assumption about the hazards being **proportional**, and 
 
 ### Lung cancer (revisited) {#sec-exr_lung-evaluation}
 
-::: callout-exercise
+::::: callout-exercise
 {{< level 2 >}}
 
 In the last chapter, you fitted several Cox regression models to the [lung cancer](#sec-exr_lung) dataset.
@@ -397,7 +433,9 @@ For each of the three models (`age` alone, `wtloss` alone, and both), you should
 
 **Which of the three models is best, in your opinion?**
 
-::: {.callout-answer collapse="true"}
+Note: when checking the Martingale residuals, you might need to return to [an earlier section](#sec-martingale-caveats) in this chapter to help you work around an error!
+
+:::: {.callout-answer collapse="true"}
 #### Answers
 
 ::: {.panel-tabset group="language"}
@@ -406,6 +444,9 @@ For each of the three models (`age` alone, `wtloss` alone, and both), you should
 First, let's recreate the three models.
 
 ```{r}
+#| message: false
+lung <- force(lung)
+
 lung_age_only <- coxph(Surv(time, status) ~ age, data = lung)
 lung_wt_only <- coxph(Surv(time, status) ~ wt.loss, data = lung)
 lung_both <- coxph(Surv(time, status) ~ age + wt.loss, data = lung)
@@ -426,10 +467,30 @@ They all have quite similar concordance scores, a little above the 0.5 chance le
 Now, let's look at the Martingale residuals, for linearity.
 
 ```{r}
-ggcoxdiagnostics(lung_age_only, type = "martingale")
-ggcoxdiagnostics(lung_wt_only, type = "martingale")
-ggcoxdiagnostics(lung_both, type = "martingale")
+#| message: false
+#| warning: false
+ggcoxfunctional(lung_age_only)
 ```
+
+For the `wt.loss` predictor, we find that there actually are some missing values, so we need to omit those rows and refit if we want to construct a Martingale residuals plot:
+
+```{r}
+# Remove missing values
+lung_narm <- na.omit(lung)
+
+# Refit the models
+lung_wt_only_narm <- coxph(Surv(time, status) ~ wt.loss, data = lung_narm)
+lung_both_narm <- coxph(Surv(time, status) ~ age + wt.loss, data = lung_narm)
+
+ggcoxfunctional(lung_wt_only_narm)
+ggcoxfunctional(lung_both_narm)
+```
+
+You may notice two things:
+
+- The Martingale plot for `wt.loss` looks much worse than the plot for `age`
+
+- The `ggcoxfunctional` function for the model containing both predictors essentially just recreates the first two plots we already had; this is not a mistake! Each predictor is dealt with one at a time when producing this kind of plot; this means that checking the Martingale residuals is actually redundant for our third model
 
 Finally, let's have a look at the Schoenfeld residuals, for proportional hazards.
 
@@ -438,9 +499,15 @@ ggcoxdiagnostics(lung_age_only, type = "schoenfeld")
 ggcoxdiagnostics(lung_wt_only, type = "schoenfeld")
 ggcoxdiagnostics(lung_both, type = "schoenfeld")
 ```
+
+Once again, we notice that the third plot essentially just creates the first two, and is redundant.
+
+This time, though, the plot for `age` perhaps looks a little worse than for `wt.loss`, implying that while `age` has a more convincingly linear relationship with survival probability, `wt.loss` better fits the proportional hazards assumption.
+
+In future chapters, we'll go into more detail about model comparison/selection, and models with multiple predictors.
 :::
-:::
-:::
+::::
+:::::
 
 ## Summary
 
@@ -453,5 +520,7 @@ In particular, we should make sure to think about the model assumptions. If they
 
 - We can use concordance to assess the goodness-of-fit of our Cox regression model
 - Cox regression makes several assumptions about the dataset and the relationship between variables
-- One of these assumptions is about linearity, which we can test with Martingale residual plots
+- These assumptions include independence and non-informative censoring, as in a log-rank test
+- A Cox-specific assumption is linearity, which we can test with Martingale residual plots
+- Cox regression also requires proportional hazards, which can be assessed visually in several ways
 :::

@@ -408,7 +408,7 @@ and crucially, our confidence interval doesn't "cross over" with 1 (remember tha
 
 So overall, we can probably be pretty happy with our hazard ratio estimate.
 
-## Global significance tests
+## Global significance tests {#sec-global-sig-tests}
 
 Underneath the information about the `age` predictor, we get some information about the model as a whole. The first number, concordance, will be discussed in the next chapter; here, we'll focus on the global significance tests.
 
@@ -610,7 +610,7 @@ In later chapters, we'll look more at models with multiple predictors. But if yo
 
 ### Cox regression versus log-rank {#sec-exr_cox-vs-logrank}
 
-::: callout-exercise
+::::: callout-exercise
 {{< level 3 >}}
 
 So far in this chapter, we've used Cox regression to model continuous predictors.
@@ -623,7 +623,7 @@ Recreate this log-rank test, and then compare it to a Cox regression with `surge
 
 Do you get different results?
 
-::: {.callout-answer collapse="true"}
+:::: {.callout-answer collapse="true"}
 ##### Answer
 
 ::: {.panel-tabset group="language"}
@@ -637,7 +637,7 @@ hospital_stays <- read_csv("data/hospital_stays.csv")
 survdiff(Surv(time, discharged) ~ surgery, data = hospital_stays)
 ```
 
-And now, the Cox regression. 
+And now, the Cox regression.
 
 Note that we don't need to do anything different syntax-wise, even though `surgery` is categorical rather than continuous - just as with the `lm` function in linear modelling.
 
@@ -654,8 +654,8 @@ In particular, the log-rank test is effectively recreating the score test (at th
 There are *tiny* differences in how the two tests calculate things, but they are achieving essentially the same thing.
 
 So the log-rank test behaves a little bit like a special case of Cox regression, in the same way that a t-test is a special case of a linear model.
-:::
-:::
+::::
+:::::
 
 ## Summary
 

@@ -14,7 +14,7 @@ book:
         - materials/06-evaluating-cox-model.qmd
     #- part: "Multiple predictors"
         #- materials/07-extending-cox-regression.qmd
-        #- materials/08-making-predictions.qmd
+        #- materials/08-model-comparison.qmd
     #- part: "Additional topics"
       #chapters:
         #- materials/censoring-and-truncation.qmd

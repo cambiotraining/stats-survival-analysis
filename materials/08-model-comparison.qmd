@@ -1,0 +1,99 @@
+---
+title: "Model comparison"
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+Last chapter, we saw that Cox regression models can feature any number of predictor variables that we like. This invites the question: how can we decide which model is the best to choose?
+
+In this chapter, we'll unpack several methods and approaches you can use to help make this decision.
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+## Nested vs. unnested models
+
+Before we go any further, need to explain the difference here
+
+\[Create a visual?\]
+
+\[Fit two models to the hospital dataset, one nested within the other\]
+
+## Revisiting concordance
+
+One of the ways we can evaluate a Cox regression model is by checking the concordance score, a concept that we introduced in a [previous chapter](#sec-concordance).
+
+When we have multiple candidate Cox models for a dataset, one of the ways we can compare their quality is by looking at which of them has the highest concordance score.
+
+::: callout-warning
+#### Can concordance scores ever be too high?
+
+Perfection is **always** suspicious in statistics. When errors get too low, it often implies that we have overfitted to our data (i.e., we are now accidentally modelling the noise as well as just the signal, which is not our goal at all!).
+
+Concordance scores that are too close to 1 (representing perfect accuracy within-sample) are often associated with models that don't generalise very well beyond the current dataset.
+
+So, a higher score is not always better. When choosing between candidate models, you can use concordance scores to help steer you towards models that are not overfitted.
+:::
+
+## Likelihood ratio tests
+
+In a [previous chapter](#sec-global-sig-tests) we looked at using likelihood ratio tests to help you interpret the output of your model and tell you information about your predictors.
+
+This type of test can also be used to help make comparisons between models.
+
+## Using AIC values
+
+You may remember using the Akaike information criterion (AIC) to compare linear models to one another.
+
+The beauty of AIC values is that they can be calculated for Cox regression models, too (as well as several other types of more advanced model, but that's beyond the scope of this course).
+
+## Summary
+
+Text
+
+::: callout-tip
+#### Key Points
+
+- Text
+:::

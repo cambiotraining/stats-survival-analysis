@@ -1,0 +1,87 @@
+---
+title: "Two or more predictors"
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+::: callout-warning
+This chapter is still in development.
+:::
+
+In the previous sections, we focused on log-rank tests for single categorical predictors, and Cox regression for single continuous predictors.
+
+However, just like in a regular linear model, a Cox regression can include multiple predictors. We'll explore what that looks like in this chapter.
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+## Fitting multivariate models
+
+## Visualising models
+
+## Checking assumptions
+
+## Interpreting the model
+
+Much the same as with a single continuous predictor
+
+You have:
+
+- hazard ratios
+
+- global significance tests
+
+- individual significance tests
+
+## Making predictions
+
+## Summary
+
+Text
+
+::: callout-tip
+#### Key Points
+
+- Text
+:::
