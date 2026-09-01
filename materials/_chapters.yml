@@ -2,21 +2,24 @@ book:
   chapters:
     - part: "Exploring time-to-event data"
       chapters:
-        - materials/01-survival-data.qmd
-        - materials/02-survival-curves.qmd
+        - materials/03-survival-data.qmd
+        - materials/04-survival-curves.qmd
     - part: "Single categorical predictor"
       chapters:
-        - materials/03-comparing-two-curves.qmd
-        - materials/04-comparing-multiple-curves.qmd
+        - materials/05-comparing-two-curves.qmd
+        - materials/06-comparing-multiple-curves.qmd
     - part: "Single continuous predictor"
       chapters:
-        - materials/05-cox-regression.qmd
-        - materials/06-evaluating-cox-model.qmd
-    #- part: "Multiple predictors"
-        #- materials/07-extending-cox-regression.qmd
-        #- materials/08-model-comparison.qmd
+        - materials/07-cox-regression.qmd
+        - materials/08-evaluating-cox-model.qmd
+    - part: "Multiple predictors"
+      chapters:
+        - materials/09-extending-cox-regression.qmd
+        - materials/10-interpreting-multivariate-cox.qmd
+        #- materials/11-model-comparison.qmd
     #- part: "Additional topics"
       #chapters:
+        #- materials/survival-power-analysis.qmd
         #- materials/censoring-and-truncation.qmd
         #- materials/time-varying-predictors.qmd
         #- materials/cure-models.qmd

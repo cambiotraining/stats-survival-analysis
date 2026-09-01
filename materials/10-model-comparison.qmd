@@ -67,9 +67,11 @@ One of the ways we can evaluate a Cox regression model is by checking the concor
 When we have multiple candidate Cox models for a dataset, one of the ways we can compare their quality is by looking at which of them has the highest concordance score.
 
 ::: callout-warning
-#### Can concordance scores ever be too high?
+#### Can concordance scores ever be **too** high?
 
-Perfection is **always** suspicious in statistics. When errors get too low, it often implies that we have overfitted to our data (i.e., we are now accidentally modelling the noise as well as just the signal, which is not our goal at all!).
+The short answer: yes!
+
+Perfection (or close to it) is **always** suspicious in statistics. When errors get too low, it often implies that we have overfitted to our data - i.e., we are now accidentally modelling the noise as well as just the real signal, which is not our goal at all!
 
 Concordance scores that are too close to 1 (representing perfect accuracy within-sample) are often associated with models that don't generalise very well beyond the current dataset.
 

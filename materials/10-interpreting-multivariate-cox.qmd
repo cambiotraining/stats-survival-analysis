@@ -1,0 +1,357 @@
+---
+title: "Interpreting more complex models"
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+Last chapter, we learned how to fit Cox regression models with more than one predictor, and how to check their assumptions.
+
+Once we're sure that a model is valid, how can we interpret it?
+
+::: callout-warning
+**This chapter is still in development.**
+
+Note that this chapter only features code in R. We hope to update it in future to include Python.
+:::
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# Load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+
+# In this chapter, we will use a new package
+install.packages("pec")
+library(pec)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+Much the same as with a single continuous predictor, there are a few key values we can focus on when evaluating and reporting a more complex Cox regression model:
+
+- hazard ratios (based on our coefficients)
+- global significance tests (specifically, the likelihood ratio test)
+- concordance
+- individual significance tests
+
+We may also want to:
+
+- make predictions using our model
+- visualise our model
+
+All of these are discussed in this chapter. Throughout, we'll be using the model we fitted last chapter; rerun this code if the model is not already in your environment:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, refit interaction term hosp stays}
+hospital_stays <- read_csv("data/hospital_stays.csv")
+
+cox_hosp_int <- coxph(Surv(time, discharged) ~ age * surgery + weekend_admission, 
+                      data = hospital_stays)
+```
+:::
+
+## Hazard ratios
+
+We can find the hazard ratios under the `exp(coef)` column of our model summary.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, print summary of cox_hosp_int}
+summary(cox_hosp_int)
+```
+:::
+
+```{r, extracting hazard ratios cox_hosp_int}
+#| echo: false
+#| message: false
+#| warning: false
+
+age_hr <- round(exp(unname(cox_hosp_int$coefficients[1])), 4)
+age_pct <- abs(1-age_hr) * 100
+surg_hr <- round(exp(unname(cox_hosp_int$coefficients[2])), 4)
+surg_pct <- abs(1-surg_hr) * 100
+adm_hr <- round(exp(unname(cox_hosp_int$coefficients[3])), 4)
+adm_pct <- abs(1-adm_hr) * 100
+age_surg_hr <- round(exp(unname(cox_hosp_int$coefficients[4])), 4)
+age_surg_pct <- abs(1-age_surg_hr) * 100
+```
+
+We already have some practice interpreting the hazard ratio for a continuous predictor such as `age`, from a [previous chapter](#sec_hazard-ratio).
+
+### Hazard ratios for categorical predictors
+
+For our binary predictors `surgery` and `weekend_admission`, the 0 group will be chosen as our reference.
+
+This means that our hazard ratios compare the hazard for the group coded 1, relative to the group 0 baseline.
+
+For `surgery` we see a hazard ratio of `r surg_hr`. If we use the [formula I previously](#sec_calculating-hazard-ratios) showed, that tells us that patients who receive surgery have a `r surg_pct`% lower hazard of experiencing the event. Since the event is being discharged, this means that they typically stay longer.
+
+For `weekend_admission`, we see a hazard ratio of `r adm_hr`, corresponding to a `r adm_pct`% reduction in hazard for those admitted on a weekend. In other words, being admitted to hospital on a weekend appears to make for a longer time-to-discharge.
+
+### Hazard ratios for interaction effects
+
+The interpretation of hazard ratios for interactions is a little more complex, so bear with me here!
+
+Firstly, we can calculate from the `age` hazard ratio that there is a `r age_pct`% decrease in the hazard for each unit increase in the predictor. In other words, for each year older a patient is, there is a `r age_pct`% decrease in their chance of being discharged at any given point in time.
+
+So how do we now interpret the extra interaction hazard ratio?
+
+Our model has estimated a hazard ratio of `r age_surg_hr` for the interaction. This corresponds to a `r age_surg_pct`% decrease in hazard.
+
+This ratio/percentage describes how the effect of `age` on the hazard *changes* when we move between the non-surgical (baseline) and surgical groups.
+
+In other words, for each one-year increase in age, the hazard ratio for age is `r age_surg_hr` times as large among patients who had surgery, compared with those who did not.
+
+So, the effect of being older is *stronger* in the surgical group than the non-surgical group.
+
+::: callout-warning
+Note: this is **not** the same as saying that surgery reduces the hazard by `r age_surg_pct` - this would be the main effect of `surgery`, which we have already calculated.
+
+This is a common mistake with interaction terms!
+:::
+
+## Global significance test
+
+We're focusing on the likelihood ratio test in this course, so let's extract the relevant information from the model summary.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, summarise cox_hosp_int model again}
+summary(cox_hosp_int)
+```
+:::
+
+```{r, extract lrt from cox_hosp_int}
+#| echo: false
+#| message: false
+#| warning: false
+sum_int <- summary(cox_hosp_int)
+chisq_int <- signif(sum_int$logtest[1], 3)
+pval_int <- signif(sum_int$logtest[3], 3)
+concord_int <- signif(sum_int$concordance[1], 3)
+```
+
+We get a $\chi^2$ statistic of `r unname(chisq_int)`, with an associated p-value of `r unname(pval_int)`.
+
+This implies that our model is very significant over the null, i.e., our data are very unlikely to have occurred by random chance.
+
+## Concordance
+
+From our summary, we can also see a concordance of `r unname(concord_int)`, which corresponds to an accuracy of `r unname(concord_int)*100`%.
+
+In other words, for all possible pairwise patient-patient comparisons across the dataset, our model correctly predicted which one of them "should" have been discharged first `r unname(concord_int)*100`% of the time.
+
+This is a relatively high number, without being unreasonably or suspiciously large, which is promising.
+
+## Individual significance tests
+
+Finally, we can examine the significance of the individual predictors in the model.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, summarise cox_hosp_int model again2}
+cox_hosp_int
+```
+:::
+
+In this model, only the `age` predictor has a significant coefficient.
+
+However - this does **not** imply that our other predictors have no value or explanatory power, and it doesn't automatically mean we should remove them from our model.
+
+In the next chapter, we'll talk a little more about model comparison.
+
+## Making predictions
+
+You can predict different things:
+
+- Risk score, representing relative hazard compared to the reference group
+- Survival probability for specific new data values
+- Survival curves for specific new data points
+
+Let's imagine we have three new patients that we want to make predictions for, using our existing model. We know their values for each of the three predictor variables that are included in their model, and we'd like to know how this affects their chances of being discharged.
+
+| Age | Surgery | Weekend admission |
+|-----|---------|-------------------|
+| 50  | 1       | 1                 |
+| 70  | 1       | 0                 |
+| 90  | 0       | 1                 |
+
+First, we're going to generate an object in our environment that contains these data, like so:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, create new_subjects data frame}
+new_subjects <- data.frame(age = c(50, 70, 90),
+                           surgery = c(1, 1, 0),
+                           weekend_admission = c(1, 0, 1))
+```
+:::
+
+### Relative risk scores
+
+One thing we can obtain using these three new imaginary patients is something called a relative risk score for each of them.
+
+::: {.panel-tabset group="language"}
+## R
+
+To do this, we use the `predict` function with the optional `type` argument set to `"risk"`:
+
+```{r, predicting risk scores}
+risk_preds <- predict(cox_hosp_int, newdata = new_subjects, type = "risk")
+risk_preds
+```
+:::
+
+What do these numbers actually mean?
+
+These behave a little bit like hazard ratios, comparing each imaginary patient to the baseline hazard estimated by our model.
+
+::: callout-tip
+For a reminder of how baseline hazard works, you may wish to return to the slides from the second lecture of the course.
+:::
+
+So, if we got a relative risk score of exactly 1, this would imply that the combination of predictor values corresponds to the model's baseline hazard.
+
+If we get relative risk scores \> 1, then the hazard is increased; scores \< 1 imply that the hazard is decreased. (Note: in this case, increasing hazard is a good thing, because it means the patient is probably getting discharged quicker!)
+
+In this case, all three of our patients are worse off than the baseline hazard to different degrees, but things look much less optimistic for our 90-year-old than our 50-year-old.
+
+### Survival probabilities
+
+Another useful question we can ask is: "for an individual with certain values of the predictor variables, what's the probability that they haven't experienced the event **by a particular time**?"
+
+In other words: we can predict the survival probability of an imaginary individual after a specific length of study duration.
+
+::: {.panel-tabset group="language"}
+## R
+
+For this, we need a function called `predictSurvProb` from our new `pec` package.
+
+Make sure you've installed and loaded the package (see the top of this chapter for the code to do this if you need it).
+
+The first step we need to follow is actually quickly refitting our model with an extra argument: `x = TRUE`. All this does is include the original dataset inside the model object that is created.
+
+Then,
+
+```{r, predicting survival probabilities step1}
+cox_hosp_int2 <- coxph(Surv(time, discharged) ~ age * surgery + weekend_admission,
+                       data = hospital_stays,
+                       x = TRUE)  
+```
+
+Then, we input our model, our set of imaginary patients, and a vector (of any length we want) of times that we'd like to make predictions for.
+
+```{r, predicting survival probabilities step2}
+predictSurvProb(object = cox_hosp_int2,                  
+                newdata = new_subjects,                  
+                times = c(20, 40, 60, 100))
+```
+:::
+
+Each row of the resulting object corresponds to one of our imaginary patients, and each column to one of our time points.
+
+For example, row 1 corresponds to our 50-year-old. At 20 days in, the probability of that patient remaining in hospital ("surviving", i.e., not having been discharged) is around 12%. By 40 days, it's dropped to 0.2%.
+
+Meanwhile, in row 3, we have our 90-year-old. Even by 60 days, they still have a 31% chance of remaining in hospital without discharge.
+
+::: {.callout-warning icon="false"}
+Note that in our 4th column, we get no predicted survival probabilities. That's because the value we entered, 100 days, goes beyond the length of the study.
+:::
+
+### Survival curves
+
+Now, let's go a step further: we can actually visualise an *entire* set of predictions for our three imaginary new patients, across the entire time period of our study.
+
+::: {.panel-tabset group="language"}
+## R
+
+First, we need to generate the set of survival predictions; then, we can feed that into our `ggsurvplot` function to produce the familiar Kaplan-Meier survival curves.
+
+```{r, predicting survival curves}
+surv_preds <- survfit(cox_hosp_int, newdata = new_subjects)
+surv_preds
+
+ggsurvplot(surv_preds, 
+           data = new_subjects,
+           surv.median.line = "hv")
+```
+:::
+
+What are we actually visualising here?
+
+Well, these are *estimates* of the underlying "true" survival curve, for each set of predictor values that we fed into the function.
+
+For example, if we had a dataset consisting entirely of 50-year-olds who received surgery and were admitted on a weekend, we might expect the survival curve to look something like the red curve above (assuming that the model we've fitted is accurate to reality).
+
+::: callout-note
+#### Where are the censoring events coming from?
+
+In the curves above, there are several + signs indicating censoring events.
+
+But of course, we're dealing with hypothetical survival curves here, based on new values of the predictors - so how can there be censoring?
+
+Well, it's because we're still basing our estimated curves on a model that was generated from a real dataset, and that dataset *did* contain censoring.
+
+Another way of thinking about what we've done here is that for each of the three curves produced above, we've taken the original 210 patients and "adjusted" all of their values to match one row of our `new_subjects` dataframe.
+
+But of those 210 patients, 21 were censored, and so that censoring carries over into each of the new curves we produce.
+:::
+
+## Visualising models
+
+## Summary
+
+While adding additional terms to the model doesn't make it much harder to fit the model itself, it does mean a more lengthy assumption-checking and interpretation procedure, and also makes it a little harder to visualise.
+
+However, it comes with the added benefit of being able to make more accurate predictions, and being able to examine potential interaction effects in the time-to-event dataset.
+
+::: callout-tip
+#### Key Points
+
+- Fitting Cox regression models with 2+ predictors (including interactions) follows the same simple syntax as fitting linear models with multiple predictors
+- Assumptions of proportional hazards and linearity are checked for each predictor individually/one by one, even when there are multiple predictors
+- We can use concordance and the global likelihood ratio test to evaluate and interpret our model as a whole, and use the model for making predictions about new data points
+- We can use individual p-values and hazard ratios to interpret individual predictors, if we are curious about the mechanisms driving "survival"
+- Visualisation of the model is more challenging when there are multiple predictors, and can involve
+:::

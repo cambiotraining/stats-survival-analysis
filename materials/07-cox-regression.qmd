@@ -18,9 +18,11 @@ exec(open('setup_files/setup.py').read())
 import shutup;shutup.please()
 ```
 
-In this chapter, we'll explore simple Cox regression models and how to interpret their output.
+In this chapter, we'll explore simple Cox regression models (with a single continuous predictor variable) and how to interpret their output.
 
-Note that this chapter only features code in R. It will be updated in future to include Python.
+::: {.callout-warning icon="false"}
+Note that this chapter only features code in R. We hope to update it in future to include Python.
+:::
 
 ## Libraries and functions
 
@@ -348,7 +350,7 @@ We can see that we're given some basic information to start with. This includes 
 
 Underneath that is where we start to get into the interpretation.
 
-## The hazard ratio
+## The hazard ratio {#sec_hazard-ratios}
 
 We've been provided with a row of quantities corresponding to our single predictor variable `age`. The most important one to focus on is the hazard ratio, which is the `exp(coef)` value.
 
@@ -372,7 +374,7 @@ This tells us that each one-year increase in age is associated with a "risk" of 
 
 So, being younger gets you discharged a tiny bit quicker.
 
-::: {.callout-important icon="false"}
+::: {#sec_calculating-hazard-ratios .callout-important icon="false"}
 #### How did I calculate that % change?
 
 Like so:
@@ -522,6 +524,11 @@ For this exercise, you should try to answer the following questions using Cox re
 
 1.  Produce a model with `age` only as a predictor. How much is the hazard increased by a 5-year age increase?
 2.  Produce a model with `wtloss` only as a predictor. How much is the hazard increased by a 5lb weight loss?
+
+{{< level 3 >}}
+
+As a bonus:
+
 3.  Do the hazard ratios and/or likelihood ratio test results change for each predictor if you include them in a model simultaneously, versus a separate model for each?
 
 ::::::::: callout-answer
@@ -578,7 +585,7 @@ this is only a \~0.7% increase.
 ::::
 
 :::: {.callout-note collapse="true" icon="false"}
-##### Both predictors
+##### Bonus: both predictors
 
 Finally, let's look at what happens when we include both predictors in the model simultaneously (without an interaction, to keep things simple).
 

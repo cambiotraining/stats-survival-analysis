@@ -22,6 +22,10 @@ Last chapter, we fitted a simple Cox model with one continuous predictor.
 
 In this chapter, we'll focus on how to judge the quality of that Cox model, and how to assess whether the assumptions of Cox regression were met.
 
+::: {.callout-warning icon="false"}
+Note that this chapter only features code in R. We hope to update it in future to include Python.
+:::
+
 ## Libraries and functions
 
 :::: {.callout-note collapse="true"}
@@ -54,9 +58,9 @@ from lifelines.statistics import pairwise_logrank_test
 
 ## The models
 
-Very briefly, let's recreate the model from last chapter using our `hospital_stays.csv` dataset.
+Very briefly, let's recreates two models from previous chapters using our `hospital_stays.csv` dataset, which we'll use to practice testing assumptions.
 
-If it's already in your global environment, you can skip this step.
+(If these are both in your environment already, you don't need to re-create them.)
 
 ::: {.panel-tabset group="language"}
 ## R
@@ -67,8 +71,11 @@ If it's already in your global environment, you can skip this step.
 
 hospital_stays <- read_csv("data/hospital_stays.csv")
 
-cox_hosp <- coxph(Surv(time, discharged) ~ age,
+cox_hosp_age <- coxph(Surv(time, discharged) ~ age,
                   data = hospital_stays)
+
+surv_hosp_surgery <- survfit(Surv(time, discharged) ~ surgery,
+                      data = hospital_stays)
 ```
 :::
 
@@ -82,7 +89,7 @@ However, interpreting all of those numbers and tests from the model summary requ
 
 ## Concordance {#sec-concordance}
 
-One of the numbers in the output that we can use is concordance. This is a measure of goodness-of-fit, or predictive accuracy. It's analogous to (but not quite the same as) $R^2$ in linear models.
+One of the numbers in the output that we can use is concordance. This is a measure of goodness-of-fit, or predictive accuracy. It's analogous to (but not quite the same as) $R^2$\$R\^2\$\$R\^2\$ in linear models.
 
 It is calculated by taking each possible pair of individuals in the dataset and ranking their actual survival times, and then comparing it to what the model predicted their risks/survival times to be.
 
@@ -95,6 +102,22 @@ Here's how concordance is calculated:
 - Each possible pair in the dataset is checked; so, if a dataset contains 20 observations, this means 190 pairwise comparisons.
 - If the model gets everything completely perfect, we would see a concordance of 1.
 - If the model is doing no better than random guessing, we would see a concordance of 0.5.
+
+Let's take a look at the concordance for our Cox regression model with `age` as a predictor.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, check concordance for age coxhosp}
+summary(cox_hosp_age)
+```
+
+You can also extract the concordance directly with the `$` syntax:
+
+```{r, directly check concordance for age coxhosp}
+summary(cox_hosp_age)$concordance
+```
+:::
 
 A concordance of around 0.7 as we see in our model above suggests that for a randomly selected pair of patients, the model correctly predicts who is discharged first 70% of the time.
 
@@ -111,8 +134,28 @@ Cox regression has some assumptions in common with the log-rank test, and these 
 
 The others we will explore more here:
 
-- Linearity
+- Linearity (for continuous predictors)
 - Proportional hazards
+
+Here's a summary of the assumptions and the methods for checking them, for Cox regression.
+
++----------------------------------+------------------------------------------+----------------------------------------------------------------------+
+| Method                           | Assumption                               | Predictor types                                                      |
++==================================+==========================================+======================================================================+
+| Querying the experimental design | Independence & non-informative censoring | All predictors                                                       |
++----------------------------------+------------------------------------------+----------------------------------------------------------------------+
+| Martingale residuals plots       | Linearity                                | Continuous only                                                      |
++----------------------------------+------------------------------------------+----------------------------------------------------------------------+
+| Survival curves & log-log plots  | Proportional hazards                     | Categorical                                                          |
+|                                  |                                          |                                                                      |
+|                                  |                                          | (unhelpful for continuous predictors, unless you do some extra work) |
++----------------------------------+------------------------------------------+----------------------------------------------------------------------+
+| Schoenfeld residuals plot        | Proportional hazards                     | All predictors                                                       |
+|                                  |                                          |                                                                      |
+|                                  |                                          | (often easier to read for continuous predictors, however)            |
++----------------------------------+------------------------------------------+----------------------------------------------------------------------+
+| `cox.zph` test                   | Proportional hazards                     | All predictors                                                       |
++----------------------------------+------------------------------------------+----------------------------------------------------------------------+
 
 ## Linearity
 
@@ -122,7 +165,7 @@ To put it more mathematically: we know that our predictor variables will not hav
 
 So, if you plotted the predictor variable against the log hazard, we expect a straight line.
 
-We only need to concern ourselves with linearity for continuous predictors (not categorical ones).
+Note that we only need to concern ourselves with linearity for continuous predictors, as the assumption does not apply to categorical predictors.
 
 ### Martingale residuals plots
 
@@ -222,7 +265,7 @@ ggcoxfunctional(Surv(time, status) ~ x, data = data_bad2)
 
 So, how are these Martingale residual plots produced?
 
-::: {.panel-tabset group="language"}
+::: {#sec_linearity-hospstays-1 .panel-tabset group="language"}
 ## R
 
 The `survminer` package comes built-in with a function for producing the Martingale residual plots.
@@ -231,7 +274,7 @@ Here it is, applied to our continuous `age` predictor variable:
 
 ```{r, martingale residuals plot}
 #| message: false
-ggcoxfunctional(cox_hosp, type = "martingale")
+ggcoxfunctional(cox_hosp_age, type = "martingale")
 ```
 
 This function automatically creates a plot for each of the continuous predictors specified. In our example we only have one, `age`.
@@ -292,7 +335,13 @@ Cox regression includes proportional hazards as a formal assumption, so we'll go
 
 The formal definition of proportional hazards is that the ratio of the hazard rates between any two groups, or between any two individuals, remains constant over time.
 
+In the context of a categorical predictor, for example:
+
 So, if group A has double the risk of death compared to group B on day 1, then they must also have double the risk of death on day 2, day 10, day 100, and so on.
+
+In the context of a continuous predictor:
+
+If individual A, with a value of the predictor variable that is 1 unit higher than individual B, has twice the risk of death on day 1, they must also have twice the risk on day 2, day 10, day 100, and so on.
 
 ### Inspecting the survival curves
 
@@ -306,7 +355,7 @@ However, examining the survival curves like this is only really helpful for cate
 
 Just to get a sense of how we *could* use this visual approach, let's examine a model that uses `surgery` instead of `age` as a predictor.
 
-::: {.panel-tabset group="language"}
+::: {#sec_prophaz-hospstays-1 .panel-tabset group="language"}
 ## R
 
 Note: we have to use the `survfit` function, rather than the `coxph` function, to create an object that can then be passed to the `ggsurvplot` function.
@@ -390,14 +439,28 @@ Make sure to set the `type` argument equal to `"schoenfeld"`.
 
 ```{r}
 #| message: false
-ggcoxdiagnostics(cox_hosp, type = "schoenfeld")
+ggcoxdiagnostics(cox_hosp_age, type = "schoenfeld")
 ```
 :::
 
 This looks good! The blue trend line is very close to the red "goal" line and there are no obvious patterns I can see in the cloud of black data points.
 
+### The `cox.zph` function
+
+For those using R and the `survival` package, there is a function designed to help with checking the proportional hazards assumption.
+
+This works on any model
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, demo cox.zph function}
+cox.zph(cox_hosp_age)
+```
+:::
+
 ::: {.callout-tip collapse="true" icon="false"}
-### Bonus: Cox regression is "semi-parametric"
+## Bonus: Cox regression is "semi-parametric"
 
 If you do any of your own reading about the assumptions of Cox regression, you may encounter people describing it as "semi-parametric".
 

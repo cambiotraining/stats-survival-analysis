@@ -1,0 +1,209 @@
+---
+title: "Two or more predictors"
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| results: hide
+source(file = "setup_files/setup.R")
+```
+
+```{python}
+#| echo: false
+#| message: false
+#| results: hide
+exec(open('setup_files/setup.py').read())
+import shutup;shutup.please()
+```
+
+In the previous sections, we focused on log-rank tests for single categorical predictors, and Cox regression for single continuous predictors.
+
+However, just like in a regular linear model, a Cox regression can include multiple predictors. We'll explore what that looks like in this chapter.
+
+::: callout-warning
+**This chapter is still in development.**
+
+Note that this chapter only features code in R. We hope to update it in future to include Python.
+:::
+
+## Libraries and functions
+
+:::: {.callout-note collapse="true"}
+## Click to expand
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, load libraries}
+#| eval: false
+# Load the required packages for fitting & visualising
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+## Python
+
+```{python, import packages}
+#| eval: false
+import numpy as np
+import pandas as pd
+from lifelines import *
+import matplotlib.pyplot as plt
+from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import pairwise_logrank_test
+```
+:::
+::::
+
+## Fitting models with 2+ predictors
+
+The good news about Cox regression is, just like regular linear models, once you know the syntax for one predictor, it's very quick and easy to add others!
+
+Using our trusty `hospital_stays` dataset, let's recreate our one-predictor Cox regression (with `age` as the single continuous predictor).
+
+Then, let's follow it up with a three-predictor model, where we include `surgery` and `weekend_admission` simultaneously alongside `age`.
+
+(These two additional variables capture whether or not a patient received surgery, and whether they were admitted on a weekday versus a weekend.)
+
+::: {.panel-tabset group="language"}
+## R
+
+The syntax for adding additional predictors is exactly the same as with the `lm` function - we use a plus sign.
+
+```{r, fitting two predictors}
+#| message: false
+
+hospital_stays <- read_csv("data/hospital_stays.csv")
+
+# Single continuous predictor
+cox_hosp_age <- coxph(Surv(time, discharged) ~ age,
+                      data = hospital_stays)
+
+# Two predictors
+cox_hosp_multi <- coxph(Surv(time, discharged) ~ age + surgery + weekend_admission,
+                        data = hospital_stays)
+```
+:::
+
+What differences do we observe when we look at the two models?
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, summarising one vs three predictors}
+summary(cox_hosp_age)
+
+summary(cox_hosp_multi)
+
+```
+:::
+
+The most obvious difference is that, in our multi-predictor model, we get information about `age`, `surgery` and `weekend_admission` in the output.
+
+We also see that some of the numbers have changed slightly. For instance, the concordance value increases a bit when we add more predictors.
+
+(This is actually expected - in the same way that $R^2$ increases when you add more predictors in regular linear models.)
+
+::: callout-tip
+### Good news!
+
+It doesn't matter what order you put the predictors into the model. Due to the way that the model is estimated, you'll always get the same coefficients no matter what.
+:::
+
+### Interactions
+
+Along with adding more main effects, we can also include interaction terms in our Cox regression model.
+
+::: {.panel-tabset group="language"}
+## R
+
+Once again, the syntax is exactly the same as with regular linear models.
+
+```{r, interaction term hosp stays}
+cox_hosp_int <- coxph(Surv(time, discharged) ~ age * surgery + weekend_admission,
+                        data = hospital_stays)
+
+summary(cox_hosp_int)
+```
+:::
+
+Here, we have added just one interaction, on top of our existing main effects: `age:surgery`.
+
+We see that the additional term now appears in our output, and that several of the other numbers have changed slightly as well (concordance, p-values, coefficients etc.)
+
+Okay - so now you know how to fit these models. But that's the easy part.
+
+How can we now **evaluate and interpret** the new models we've created?
+
+## Checking assumptions
+
+The first step, as with any type of modelling, is to check whether the assumptions are met.
+
+Our four assumptions for Cox regression from previous chapters still apply:
+
+- Independence
+- Non-informative censoring
+- Linearity (for continuous predictors)
+- Proportional hazards
+
+We actually already considered the [linearity](#sec_linearity-hospstays-1) assumption in a previous chapter for the `age` predictor. Since we haven't added any other continuous predictors, we don't need to construct any more Martingale residuals plots here.
+
+We also already examined the [proportional hazards](#sec_prophaz-hospstays-1) assumption in a previous chapter for the `age` and `surgery` variables.
+
+So, from here, all we really need to do is check is the proportional hazards assumption for the `weekend_admission` variable, and consider any possible sources of non-independence or informative censoring.
+
+#### Proportional hazards: `weekend_admission`
+
+Now, the Schoenfeld residuals for proportional hazards:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, schoenfeld check for cox_hosp_int}
+ggcoxdiagnostics(cox_hosp_int, type = "schoenfeld")
+```
+:::
+
+No obvious issues are jumping out!
+
+Remember, for our categorical predictors, it's usually also helpful (and easier) to examine the log-log curves. Here's a reminder of how to do that for the `weekend_admission` variable:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, loglog for wkndadmission}
+surv_hosp_adm <- survfit(Surv(time, discharged) ~ weekend_admission,
+                             data = hospital_stays)
+
+plot(surv_hosp_adm, fun = "cloglog")
+```
+:::
+
+This looks pretty parallel to me. (You can also double-check what you think of the actual survival curves, too, if you want some practice.)
+
+#### Possible sources of non-independence/informative censoring
+
+Particularly with the introduction of the `surgery` and `weekend_admission` variables, we can consider a few different possible issues.
+
+| Problem | Assumption affected |
+|-----------------------------------------------|-------------------------|
+| Patients operated on by the same surgeon/surgical teams may have more similar outcomes | Independence |
+| Patients admitted around the same time may have more similar ailments and therefore more similar outcomes (e.g., drinking-related injuries are more common on weekends) | Independence |
+| Patients requiring complex or specialist surgeries may be more likely to be transferred to other hospitals, and thus lost from the study | Non-informative censoring |
+| Patients admitted at the weekend are more likely to be transferred to another hospital due to low/insufficient staffing, and thus lost from the study | Non-informative censoring |
+
+Perhaps none of these affect our dataset, and from here, we'll assume that they don't. These are just some examples to continue to get you used to thinking about these assumptions.
+
+## Summary
+
+While adding additional terms to the model doesn't make it much harder to fit the model itself, it does mean a more lengthy assumption-checking and interpretation procedure.
+
+::: callout-tip
+#### Key Points
+
+- Fitting Cox regression models with 2+ predictors (including interactions) follows the same simple syntax as fitting linear models with multiple predictors
+- Assumptions of proportional hazards and linearity are checked for each predictor individually/one by one, even when there are multiple predictors
+:::
