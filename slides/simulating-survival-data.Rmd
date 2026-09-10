@@ -1645,6 +1645,216 @@ write_csv(fruit_bowl, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysi
 write_csv(fruit_bowl_2, "C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/fruit_bowl_2.csv")
 ```
 
+# Exercises - multivariate Cox regression (9/10)
+
+## Website purchases
+
+```{r}
+set.seed(271)
+
+# Sample size
+n <- 89
+
+# Define true coefficients (log-hazard ratios)
+beta_device <- -0.4       # mobile users have a lower purchase hazard
+beta_discount <- 0.7      # users offered a discount have a higher purchase hazard
+
+# Covariates
+device <- rbinom(n, 1, 0.5)       # binary (0 = desktop, 1 = mobile)
+discount <- rbinom(n, 1, 0.5)     # binary (0 = no discount, 1 = discount)
+
+# Linear predictor
+lin_pred <- device * beta_device +
+  discount * beta_discount
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.08
+
+# Simulate time to purchase
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Random censoring
+censoring <- runif(n, min = 0, max = quantile(time, 0.8))
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+website <- data.frame(
+  time = observed_time,
+  purchased = event,
+  device = factor(device, labels = c("desktop", "mobile")),
+  discount = factor(discount, labels = c("none", "discount"))
+)
+```
+
+```{r}
+set.seed(271)
+
+# Sample size
+n <- 89
+
+# Define true coefficients (log-hazard ratios)
+beta_device <- -0.4       # mobile users have a lower purchase hazard
+beta_discount <- 0.7      # users offered a discount have a higher purchase hazard
+
+# Covariates
+device <- rbinom(n, 1, 0.5)       # binary (0 = desktop, 1 = mobile)
+discount <- rbinom(n, 1, 0.5)     # binary (0 = no discount, 1 = discount)
+
+# Linear predictor
+lin_pred <- device * beta_device +
+  discount * beta_discount
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.04
+
+# Simulate survival times
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Administrative censoring
+follow_up <- 40
+observed_time <- pmin(time, follow_up)
+event <- as.numeric(time <= follow_up)
+
+observed_time <- ceiling(observed_time)
+
+website <- data.frame(
+  time = observed_time,
+  purchased = event,
+  device = factor(device, labels = c("desktop", "mobile")),
+  discount = factor(discount, labels = c("none", "discount"))
+)
+```
 
 
+```{r}
+cox_purchases <- coxph(Surv(time, purchased) ~ device * discount,
+                       data = website)
+
+summary(cox_purchases)
+```
+
+```{r}
+# Refit using survfit
+surv_purchases_device <- survfit(Surv(time, purchased) ~ device, data = website)
+
+# Produce log-log curves
+plot(surv_purchases_device, fun = "cloglog")
+```
+
+```{r}
+# Refit using survfit
+surv_purchases_discount <- survfit(Surv(time, purchased) ~ discount, data = website)
+
+# Produce log-log curves
+plot(surv_purchases_discount, fun = "cloglog")
+```
+
+```{r}
+getwd()
+write_csv(website, "materials/data/website_purchases.csv")
+```
+
+## Penguin chicks
+
+```{r}
+set.seed(271)
+
+# Sample size
+n <- 29
+
+# Define true coefficients (log-hazard ratios)
+beta_egg_mass <- -0.02          # heavier eggs have a slightly lower hatching hazard
+beta_experience <- 0.35         # experienced parents have a higher hatching hazard
+beta_temperature <- 0.08        # warmer temperatures have a higher hatching hazard
+
+# Covariates
+egg_mass <- rnorm(n, mean = 50, sd = 3)       # egg mass in grams
+parent_experience <- rbinom(n, 1, 0.5)        # binary (0 = first-time, 1 = experienced)
+temperature <- rnorm(n, mean = 12, sd = 2)    # average ambient temperature in °C
+
+# Linear predictor
+lin_pred <- egg_mass * beta_egg_mass +
+  parent_experience * beta_experience +
+  temperature * beta_temperature
+
+# Baseline hazard rate (lambda for exponential)
+lambda <- 0.015
+
+# Simulate time until first chick hatches
+# T ~ Exponential(rate = lambda * exp(lin_pred))
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Random censoring
+censoring <- runif(n, min = 25, max = 50)
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+chicks <- data.frame(
+  time = observed_time,
+  hatched = event,
+  egg_mass = egg_mass,
+  parent_experience = factor(
+    parent_experience,
+    labels = c("first-time", "experienced")
+  ),
+  temperature = temperature
+)
+```
+
+```{r}
+set.seed(271)
+
+# Sample size
+n <- 29
+
+# Define true coefficients (log-hazard ratios)
+beta_egg_mass <- -0.02          # heavier eggs have a slightly lower hatching hazard
+beta_experience <- 0.35         # experienced parents have a higher hatching hazard
+beta_temperature <- 0.08        # warmer temperatures have a higher hatching hazard
+
+# Covariates
+egg_mass <- rnorm(n, mean = 50, sd = 3)       # egg mass in grams
+parent_experience <- rbinom(n, 1, 0.5)        # binary (0 = first-time, 1 = experienced)
+temperature <- rnorm(n, mean = 12, sd = 2)    # average ambient temperature in °C
+
+# Linear predictor
+lin_pred <- beta_egg_mass * (egg_mass - 50) +
+  parent_experience * beta_experience +
+  beta_temperature * (temperature - 12)
+
+# Baseline hazard rate
+lambda <- 0.08
+
+# Simulate time from study entry until hatching
+# Study entry occurs around day 25 of incubation
+time <- rexp(n, rate = lambda * exp(lin_pred))
+
+# Random censoring during follow-up
+censoring <- runif(n, min = 10, max = 25)
+observed_time <- pmin(time, censoring)
+event <- as.numeric(time <= censoring)
+
+observed_time <- ceiling(observed_time)
+
+chicks <- data.frame(
+  time = observed_time,
+  hatched = event,
+  mass = round(egg_mass),
+  parent_experience = factor(
+    parent_experience,
+    labels = c("first-time", "experienced")
+  ),
+  temperature = round(temperature,1)
+)
+```
+
+```{r}
+write_csv(chicks, "materials/data/chicks.csv")
+```
 

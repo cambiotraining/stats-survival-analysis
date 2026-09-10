@@ -7,6 +7,7 @@ editor: visual
 #| echo: false
 #| message: false
 #| results: hide
+#| warning: false
 source(file = "setup_files/setup.R")
 ```
 
@@ -14,6 +15,7 @@ source(file = "setup_files/setup.R")
 #| echo: false
 #| message: false
 #| results: hide
+#| warning: false
 exec(open('setup_files/setup.py').read())
 import shutup;shutup.please()
 ```
@@ -114,7 +116,7 @@ age_surg_hr <- round(exp(unname(cox_hosp_int$coefficients[4])), 4)
 age_surg_pct <- abs(1-age_surg_hr) * 100
 ```
 
-We already have some practice interpreting the hazard ratio for a continuous predictor such as `age`, from a [previous chapter](#sec_hazard-ratio).
+We already have some practice interpreting the hazard ratio for a continuous predictor such as `age`, from [chapter 7](07-cox-regression.qmd#sec-hazard-ratios).
 
 ### Hazard ratios for categorical predictors
 
@@ -122,7 +124,7 @@ For our binary predictors `surgery` and `weekend_admission`, the 0 group will be
 
 This means that our hazard ratios compare the hazard for the group coded 1, relative to the group 0 baseline.
 
-For `surgery` we see a hazard ratio of `r surg_hr`. If we use the [formula I previously](#sec_calculating-hazard-ratios) showed, that tells us that patients who receive surgery have a `r surg_pct`% lower hazard of experiencing the event. Since the event is being discharged, this means that they typically stay longer.
+For `surgery` we see a hazard ratio of `r surg_hr`. If we use the formula [I previously showed](07-cox-regression.qmd#sec-calculating-hazard-ratios), that tells us that patients who receive surgery have a `r surg_pct`% lower hazard of experiencing the event. Since the event is being discharged, this means that they typically stay longer.
 
 For `weekend_admission`, we see a hazard ratio of `r adm_hr`, corresponding to a `r adm_pct`% reduction in hazard for those admitted on a weekend. In other words, being admitted to hospital on a weekend appears to make for a longer time-to-discharge.
 
@@ -338,20 +340,168 @@ Another way of thinking about what we've done here is that for each of the three
 But of those 210 patients, 21 were censored, and so that censoring carries over into each of the new curves we produce.
 :::
 
-## Visualising models
+## Exercises
+
+### Website purchases (revisited)
+
+:::: callout-exercise
+{{< level 2 >}}
+
+In @sec-exr-web-purchases in the previous chapter, you fitted a multiple Cox regression to a marketing dataset.
+
+Now, use the methods described above to evaluate and interpret this model.
+
+You should use:
+
+- concordance
+- hazard ratios
+- significance testing
+
+to determine how far this model supports the hypothesis that offering a discount is more effective for users on laptops than on mobile, in terms of increasing their "risk" of making a purchase.
+
+::: {.callout-important icon="false"}
+#### There is no worked answer provided!
+
+I encourage you to discuss your decision with a neighbour, or in fact to work together from the beginning. Failing that, just grab a trainer to talk through what you've found.
+:::
+::::
+
+### Chicks in nests (revisited)
+
+:::::::::: callout-exercise
+{{< level 3 >}}
+
+We'll be returning here to the `chicks.csv` dataset from last chapter. Check out @sec-exr-penguin-chicks for more information on this dataset.
+
+If you haven't already, fit an additive model (`~ temperature + mass + parent_experience`) to these data, and then answer the following questions:
+
+1.  For each unit change in `temperature`, how is the hazard affected? (Try to calculate the percentage change in risk/hazard.)
+
+2.  Is the hazard higher or lower for eggs of experienced parents?
+
+3.  What's the predicted median incubation time would you predict for an egg of mass 56g, with experienced parents, with an average ambient temperature of 16 degrees?
+
+4.  How about an egg with mass 50g, with inexperienced parents, and a temperature of 12 degrees? Do you feel more or less confident about this prediction than the previous one?
+
+::::::::: {.callout-answer collapse="true"}
+#### Worked answer
+
+First, start by reading in the dataset and fitting the additive model.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, additive cox model penguin chicks}
+chicks <- read_csv("data/chicks.csv")
+
+cox_chicks <- coxph(Surv(time, hatched) ~ temperature + mass + parent_experience, 
+                    data = chicks)
+```
+:::
+
+###### Hazard ratios
+
+To answer the first two questions, we need to extract the hazard ratios for the `temperature` and `experienced_parents` variables.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, summarise model cox penguin chicks}
+summary(cox_chicks)
+```
+:::
+
+`temperature` is a continuous predictor, so we're interested in how the hazard ("risk" of hatching) changes with each unit change, i.e., each degree, of the ambient temperature.
+
+As per the [formula given in chapter 7](07-cox-regression.qmd#sec-calculating-hazard-ratios), the hazard ratio of `r round(exp(unname(cox_chicks$coefficients[1])), 5)` corresponds to a `r round(abs(exp(unname(cox_chicks$coefficients[1])) - 1) * 100, 1)`% decrease in "risk" for each degree Celsius.
+
+In other words, hotter temperatures are "worse" for egg-hatching, at least according to our data.
+
+Since `parent_experience` is a categorical predictor, we're comparing one group to another. With a hazard ratio \< 1 (`r round(exp(unname(cox_chicks$coefficients[3])), 5)`, to be specific), where we're treating experienced parents as the reference group, that implies that first-timers have a decreased hazard – i.e., hatch their eggs slightly less effectively.
+
+This particular ratio corresponds to a `r round(abs(exp(unname(cox_chicks$coefficients[3])) - 1) * 100, 1)`% decrease in risk of hatching when moving from experienced to first-time parents. Very useful for the scientists to know!
+
+###### Predictions
+
+For the last two questions, we'll use the `predict()` function as shown earlier in the chapter. To do so, we need to construct a new dataframe with our hypothetical new eggs to feed into it.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, create neweggs df for predictions}
+neweggs <- data.frame(temperature = c(16, 12),
+                      mass = c(56, 50),
+                      parent_experience = c("experienced", "first-time"))
+```
+:::
+
+Now, we feed this dataframe of new hypothetical eggs into the `predict` function.
+
+However, we first need to have a think about *what* we've been asked to predict. The wording in the question is "predicted median incubation time".
+
+Where do we get the median time in survival analysis? The survival curve!
+
+So, what we want to do here is create survival curves for our two hypothetical eggs.
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, create survival curves for new penguin eggs}
+surv_preds_chicks <- survfit(cox_chicks, newdata = neweggs)
+
+ggsurvplot(surv_preds_chicks,
+           data = neweggs,
+           surv.median.line = "hv")
+```
+:::
+
+From reading off on these curves, we can see that the medians are `r unname(summary(surv_preds_chicks)$table[,'median'][1])` and `r unname(summary(surv_preds_chicks)$table[,'median'][2])` respectively.
+
+(We can also print the survival object directly to see the medians; although that's not quite as aesthetic, depending on the scale of the x-axis, it might be more useful.)
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, print survfit object for new penguin eggs}
+surv_preds_chicks
+```
+:::
+
+Note that these numbers correspond to days *after* the study started, so we need to add 25 in each case, for predictions of `r unname(summary(surv_preds_chicks)$table[,'median'][1]) + 25` and `r unname(summary(surv_preds_chicks)$table[,'median'][2]) + 25`.
+
+Finally, we are asked to decide which of these two predictions we feel more confident about.
+
+If you look closely at the `temperature` and `mass` values provided for the first of our two hypothetical eggs, they fall towards the "edges" of what we have in our dataset.
+
+For a quick check of that:
+
+::: {.panel-tabset group="language"}
+## R
+
+```{r, show temp and mass ranges for penguins}
+range(chicks$temperature)
+range(chicks$mass)
+```
+:::
+
+This means that, personally, I'd be more inclined to trust predictions for the second egg, as it lines up more closely with what I've already seen from the data.
+
+**This is not a unique concept to survival analysis!** This idea holds true when making predictions for literally any type of model.
+:::::::::
+::::::::::
 
 ## Summary
 
-While adding additional terms to the model doesn't make it much harder to fit the model itself, it does mean a more lengthy assumption-checking and interpretation procedure, and also makes it a little harder to visualise.
-
-However, it comes with the added benefit of being able to make more accurate predictions, and being able to examine potential interaction effects in the time-to-event dataset.
+There are several methods and metrics available to help you evaluate a Cox regression model. Perhaps the most important among them are hazard ratios
 
 ::: callout-tip
 #### Key Points
 
-- Fitting Cox regression models with 2+ predictors (including interactions) follows the same simple syntax as fitting linear models with multiple predictors
-- Assumptions of proportional hazards and linearity are checked for each predictor individually/one by one, even when there are multiple predictors
-- We can use concordance and the global likelihood ratio test to evaluate and interpret our model as a whole, and use the model for making predictions about new data points
-- We can use individual p-values and hazard ratios to interpret individual predictors, if we are curious about the mechanisms driving "survival"
-- Visualisation of the model is more challenging when there are multiple predictors, and can involve
+- To understand the impact of a predictor on survival/time-to-event, we focus on interpreting the hazard ratios, which are calculated from the beta coefficients and act as effect sizes
+- We can use concordance and the global likelihood ratio test to evaluate the quality of our model as a whole (e.g., versus the null)
+- We can use individual p-values (along with the hazard ratios) to help us interpret individual predictors
+- We can use the model for making predictions about new data points; these predictions may be for:
+  - relative risk scores, for groups or individuals
+  - survival probabilities
+  - the shape of a hypothetical survival curve
 :::

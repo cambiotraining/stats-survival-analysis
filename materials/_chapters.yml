@@ -19,6 +19,7 @@ book:
         #- materials/11-model-comparison.qmd
     #- part: "Additional topics"
       #chapters:
+        #- materials/centring-predictors.qmd
         #- materials/survival-power-analysis.qmd
         #- materials/censoring-and-truncation.qmd
         #- materials/time-varying-predictors.qmd

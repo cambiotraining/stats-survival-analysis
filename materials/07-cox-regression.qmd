@@ -350,7 +350,7 @@ We can see that we're given some basic information to start with. This includes 
 
 Underneath that is where we start to get into the interpretation.
 
-## The hazard ratio {#sec_hazard-ratios}
+## The hazard ratio {#sec-hazard-ratios}
 
 We've been provided with a row of quantities corresponding to our single predictor variable `age`. The most important one to focus on is the hazard ratio, which is the `exp(coef)` value.
 
@@ -374,8 +374,8 @@ This tells us that each one-year increase in age is associated with a "risk" of 
 
 So, being younger gets you discharged a tiny bit quicker.
 
-::: {#sec_calculating-hazard-ratios .callout-important icon="false"}
-#### How did I calculate that % change?
+::: {.callout-important icon="false"}
+#### How did I calculate that % change? {#sec-calculating-hazard-ratios}
 
 Like so:
 

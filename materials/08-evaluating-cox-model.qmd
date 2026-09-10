@@ -129,8 +129,8 @@ Like any type of statistical model, a Cox regression makes assumptions about the
 
 Cox regression has some assumptions in common with the log-rank test, and these assumptions have already been explored in sufficient detail elsewhere:
 
-- [Independent observations](#sec-independence)
-- [Non-informative censoring](#sec-non-informative-censoring)
+- [Independent observations](05-comparing-two-curves.qmd#sec-independence)
+- [Non-informative censoring](05-comparing-two-curves.qmd#sec-non-informative-censoring)
 
 The others we will explore more here:
 
@@ -157,7 +157,7 @@ Here's a summary of the assumptions and the methods for checking them, for Cox r
 | `cox.zph` test                   | Proportional hazards                     | All predictors                                                       |
 +----------------------------------+------------------------------------------+----------------------------------------------------------------------+
 
-## Linearity
+## Linearity {#sec-linearity-hospstays-1}
 
 Although a Cox model is not itself linear, it does contain a linear bit in it, which we are transforming/embedding inside a non-linear equation. And we do still need that linear bit to actually be linear.
 
@@ -265,7 +265,7 @@ ggcoxfunctional(Surv(time, status) ~ x, data = data_bad2)
 
 So, how are these Martingale residual plots produced?
 
-::: {#sec_linearity-hospstays-1 .panel-tabset group="language"}
+::: {.panel-tabset group="language"}
 ## R
 
 The `survminer` package comes built-in with a function for producing the Martingale residual plots.
@@ -325,9 +325,9 @@ ggcoxfunctional(cox_hosp_narm, data = hospital_stays_narm)
 (In this example, the plot looks identical, because we didn't actually have any missing values!)
 ::::
 
-## Proportional hazards
+## Proportional hazards {#sec-prophaz-hospstays-1}
 
-In a [previous section](#sec-proportional-hazards-1), the idea of proportional hazards was introduced in the context of the log-rank test.
+In a [previous chapter](05-comparing-two-curves.qmd#sec-proportional-hazards-1) the idea of proportional hazards was introduced in the context of the log-rank test.
 
 Cox regression includes proportional hazards as a formal assumption, so we'll go over it in more detail here, along with several different methods for checking it.
 
@@ -351,16 +351,16 @@ This is most effective when the dataset is large enough to produce curves that a
 
 ![](images/clipboard-1602678661.png)
 
-However, examining the survival curves like this is only really helpful for categorical predictors - as we [discussed last chapter](#sec-continuous-curves), things get tricky with continuous predictors such as `age`.
+However, examining the survival curves like this is only really helpful for categorical predictors - as we [discussed last chapter](07-cox-regression.qmd#sec-continuous-curves) things get tricky with continuous predictors such as `age`.
 
 Just to get a sense of how we *could* use this visual approach, let's examine a model that uses `surgery` instead of `age` as a predictor.
 
-::: {#sec_prophaz-hospstays-1 .panel-tabset group="language"}
+::: {.panel-tabset group="language"}
 ## R
 
 Note: we have to use the `survfit` function, rather than the `coxph` function, to create an object that can then be passed to the `ggsurvplot` function.
 
-However, once we've checked the proportional hazards, we could run `coxph(Surv(time, discharged) ~ surgery` just fine - check out the [second exercise from last chapter](#sec-exr_cox-vs-logrank) for the proof!
+However, once we've checked the proportional hazards, we could run `coxph(Surv(time, discharged) ~ surgery` just fine - check out the [second exercise from last chapter](07-cox-regression.qmd#sec-exr_cog-vs-logrank) for the proof!
 
 ```{r, create coxph for surgery predictor}
 #| message: false 
@@ -484,7 +484,7 @@ However, we do make an assumption about the hazards being **proportional**, and 
 ::::: callout-exercise
 {{< level 2 >}}
 
-In the last chapter, you fitted several Cox regression models to the [lung cancer](#sec-exr_lung) dataset.
+In the last chapter, you fitted several Cox regression models to the lung cancer dataset from @sec-exr_lung.
 
 Now, we'll evaluate them!
 
