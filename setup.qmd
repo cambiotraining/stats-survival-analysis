@@ -18,9 +18,11 @@ Download and unzip to your project folder to follow along with the materials.
 
 ```{r}
 #| echo: false
+#| message: false
+#| warning: false
 library(downloadthis)
 download_link(
-  link = "https://github.com/cambiotraining/stats-survival-analysis/tree/main/materials/data_SV.zip",
+  link = "https://github.com/cambiotraining/stats-survival-analysis/raw/main/materials/data_SV.zip",
   button_label = "Download ZIP file",
   button_type = "primary",
   has_icon = TRUE,
