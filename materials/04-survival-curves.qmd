@@ -334,6 +334,12 @@ We can make our survival curve more informative by including risk or cumulative 
 
 This is especially important if you plan to present or share your survival curve.
 
+Probably the most commonly used option is a risk table.
+
+It captures, at various points along the study time, how many individuals in the sample were still "at risk" of experiencing the event of interest.
+
+The number at risk at a time $t$ is calculated as: $\text{initial number at risk} - (\text{total events up to time } t + \text{total censoring up to time }t)$
+
 ::: {.panel-tabset group="language"}
 ## R
 

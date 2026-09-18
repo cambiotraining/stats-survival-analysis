@@ -92,7 +92,7 @@ hospital_stays.head()
 ```
 :::
 
-When we plot the time-to-discharge on a histogram, we can see a strong right-skew (a long tail going in the positive direction).
+When we plot the observed hospital stay times (or "time-to-discharge") on a histogram, we can see a strong right-skew, i.e., a long tail going in the positive direction.
 
 This reflects the fact that a lot of people will be discharged within a few days, since most people who are admitted to hospital thankfully aren't seriously unwell. A small fraction of the patients studied, however, are admitted for much more serious reasons and stay a lot longer.
 
@@ -117,7 +117,7 @@ plt.show()
 
 ## Censoring
 
-Perhaps the most important and unique thing about time-to-event data is that it will often be censored - meaning we have incomplete information.
+Perhaps the most important and unique thing about time-to-event data is that it will often be censored - meaning that the exact event time is not observed for some individuals, although we still have some information about their follow-up time.
 
 ::: callout-warning
 #### We can't just exclude censored individuals!
@@ -127,7 +127,15 @@ If we were to drop these individuals from our study, we would probably get a pes
 
 In this chapter, we'll talk about the two most common types of censoring.
 
-In later (bonus) chapters, we'll introduce other types of "missingness" in time-to-event data which are much less common, in case you come across those in your own research or reading.
+::: callout-tip
+#### Want more on censoring?
+
+Although we're going to focus on the more common censoring mechanisms here, there are others.
+
+We plan to add some bonus chapters that introduce those types of censoring in time-to-event data which are much less common, in case you come across those in your own research or reading.
+
+Watch this space!
+:::
 
 ### Right-censoring
 

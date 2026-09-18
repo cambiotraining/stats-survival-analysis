@@ -13,12 +13,21 @@ Note that we use tabsets to provide instructions for all three major operating s
 ## Data
 
 The data used in these materials is provided as a zip file. 
-Download and unzip the folder to your Desktop to follow along with the materials.
 
-<!-- Note for Training Developers: add the link to 'href' -->
-<a href="">
-  <button class="btn"><i class="fa fa-download"></i> Download</button>
-</a>
+Download and unzip to your project folder to follow along with the materials.
+
+```{r}
+#| echo: false
+library(downloadthis)
+download_link(
+  link = "https://github.com/cambiotraining/stats-survival-analysis/tree/main/materials/data_SV.zip",
+  button_label = "Download ZIP file",
+  button_type = "primary",
+  has_icon = TRUE,
+  icon = "fa fa-save",
+  self_contained = FALSE
+)
+```
 
 ## R/Python installation
 
@@ -93,3 +102,4 @@ or via `conda`:
 conda install -c conda-forge numpy
 ```
 :::
+

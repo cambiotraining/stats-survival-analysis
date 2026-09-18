@@ -470,41 +470,41 @@ plt.show()
 
 Chances are that if you're running a log-rank test, you'll likely want to report it. Here are some general guidelines to follow when you do.
 
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   |                                                                                                                                                                                                            |
-+===+============================================================================================================================================================================================================+
-| ✓ | **Visualise the survival curves**                                                                                                                                                                          |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | A single significance test by itself tells a reader very little. It doesn't capture important details like sample size or direction of effect (e.g., which group is more at risk than the other).          |
-|   |                                                                                                                                                                                                            |
-|   | If a log-rank test is important enough to your central thesis that you're choosing to include it in your writing, then it's also important enough to visualise the survival curves that you compared.      |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Comment on assumption-checking**                                                                                                                                                                         |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | You don't have to describe or show a full set of diagnostic plots in-text - that's probably overkill (if you're a very thorough person, you can put them in supplementary materials).                      |
-|   |                                                                                                                                                                                                            |
-|   | But, you should at least state the assumptions of the test, the fact that you checked them, and how well you believe they are met.                                                                         |
-|   |                                                                                                                                                                                                            |
-|   | There are a few reasons why:                                                                                                                                                                               |
-|   |                                                                                                                                                                                                            |
-|   | 1.  Hold yourself accountable - this will make sure you do actually think about the assumptions                                                                                                            |
-|   | 2.  Transparency - it helps readers determine how confident they feel in the appropriateness of your log-rank test(s)                                                                                      |
-|   | 3.  Setting a good example - researchers often follow statistical practice they learn from their peers' publications; you have an opportunity to set a good trend!                                         |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Consider the problem of multiple comparisons/false positives**                                                                                                                                           |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | If you are doing a large number of log-rank tests, remember that the overall probability that at least one of them will give you a false positive result is higher than if you only did one log-rank test. |
-|   |                                                                                                                                                                                                            |
-|   | In situations where you need to run loads of tests, consider whether correcting for multiple comparisons might be needed, to increase confidence in your conclusions.                                      |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ✓ | **Don't run/report log-rank tests unless they address your hypotheses**                                                                                                                                    |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|   | This is maybe the most important "best practice" of them all!                                                                                                                                              |
-|   |                                                                                                                                                                                                            |
-|   | Never do statistical analyses for the sake of sprinkling in some extra p-values. At best, this makes your overall point less clear. At worst, it's p-hacking.                                              |
-|   |                                                                                                                                                                                                            |
-|   | Only run tests that will actually address the research questions you had in mind when you designed the study in the first place.                                                                           |
-+---+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|        |                                                                                                                                                                                                            |
++========+============================================================================================================================================================================================================+
+| ✓      | **Visualise the survival curves**                                                                                                                                                                          |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|        | A single significance test by itself tells a reader very little. It doesn't capture important details like sample size or direction of effect (e.g., which group is more at risk than the other).          |
+|        |                                                                                                                                                                                                            |
+|        | If a log-rank test is important enough to your central thesis that you're choosing to include it in your writing, then it's also important enough to visualise the survival curves that you compared.      |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓      | **Comment on assumption-checking**                                                                                                                                                                         |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|        | You don't have to describe or show a full set of diagnostic plots in-text - that's probably overkill (if you're a very thorough person, you can put them in supplementary materials).                      |
+|        |                                                                                                                                                                                                            |
+|        | But, you should at least state the assumptions of the test, the fact that you checked them, and how well you believe they are met.                                                                         |
+|        |                                                                                                                                                                                                            |
+|        | There are a few reasons why:                                                                                                                                                                               |
+|        |                                                                                                                                                                                                            |
+|        | 1.  Hold yourself accountable - this will make sure you do actually think about the assumptions                                                                                                            |
+|        | 2.  Transparency - it helps readers determine how confident they feel in the appropriateness of your log-rank test(s)                                                                                      |
+|        | 3.  Setting a good example - researchers often follow statistical practice they learn from their peers' publications; you have an opportunity to set a good trend!                                         |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓      | **Consider the problem of multiple comparisons/false positives**                                                                                                                                           |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|        | If you are doing a large number of log-rank tests, remember that the overall probability that at least one of them will give you a false positive result is higher than if you only did one log-rank test. |
+|        |                                                                                                                                                                                                            |
+|        | In situations where you need to run loads of tests, consider whether correcting for multiple comparisons might be needed, to increase confidence in your conclusions.                                      |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ✓      | **Don't run/report log-rank tests unless they address your hypotheses**                                                                                                                                    |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|        | This is maybe the most important "best practice" of them all!                                                                                                                                              |
+|        |                                                                                                                                                                                                            |
+|        | Never do statistical analyses for the sake of sprinkling in some extra p-values. At best, this makes your overall point less clear. At worst, it's p-hacking.                                              |
+|        |                                                                                                                                                                                                            |
+|        | Only run tests that will actually address the research questions you had in mind when you designed the study in the first place.                                                                           |
++--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 ## Exercises
 
@@ -610,65 +610,65 @@ As a bonus - and to carry you into the next chapter, where we'll revisit a versi
 
 Think through the following examples, and consider whether the assumptions of independence and/or non-informative censoring are met.
 
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-|    |                                                                                                                                 |
-+====+=================================================================================================================================+
-| 🍷 | **Wine bottles**                                                                                                                |
-|    |                                                                                                                                 |
-|    | A wine collector records each time a wine bottle in their cellar develops a fault, e.g., a crack.                               |
-|    |                                                                                                                                 |
-|    | - Event of interest: fault developing                                                                                           |
-|    | - Predictor: red vs white wine                                                                                                  |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🔋 | **Battery life**                                                                                                                |
-|    |                                                                                                                                 |
-|    | The battery life on a number of personal devices is tested, by continually using them without plugging them in until they fail. |
-|    |                                                                                                                                 |
-|    | - Event: losing charge (dropping to 0%)                                                                                         |
-|    | - Predictor: laptop vs phone                                                                                                    |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🚲 | **Bicycle tires**                                                                                                               |
-|    |                                                                                                                                 |
-|    | A group of Cambridge students record each time they experience a puncture on one of their bike tires.                           |
-|    |                                                                                                                                 |
-|    | - Event: puncture appearing                                                                                                     |
-|    | - Predictor: road vs mountain bike                                                                                              |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🏃 | **Runners in a marathon**                                                                                                       |
-|    |                                                                                                                                 |
-|    | The length of time taken for a runner to complete a marathon is recorded.                                                       |
-|    |                                                                                                                                 |
-|    | - Event: crossing finish line                                                                                                   |
-|    | - Predictor: whether they've completed a marathon before                                                                        |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🧊 | **Ice cubes**                                                                                                                   |
-|    |                                                                                                                                 |
-|    | A manufacturer is testing their new coolers, by testing how long it takes for a bunch of ice cubes to melt.                     |
-|    |                                                                                                                                 |
-|    | - Event: melting (disappearing)                                                                                                 |
-|    | - Predictor: room temperature (not in the cooler) vs in the cooler                                                              |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🍞 | **Mouldy bread**                                                                                                                |
-|    |                                                                                                                                 |
-|    | A bakery tests how long it takes for bread to go mouldy. They observe each slice from 24 loaves of bread.                       |
-|    |                                                                                                                                 |
-|    | - Event: mould is visible                                                                                                       |
-|    | - Predictor: white vs brown bread                                                                                               |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🎈 | **Balloons deflating**                                                                                                          |
-|    |                                                                                                                                 |
-|    | A bunch of balloons are inflated to the exact same diameter, and observed as they deflate.                                      |
-|    |                                                                                                                                 |
-|    | - Event: balloon drops below a given diameter                                                                                   |
-|    | - Predictor: air vs helium                                                                                                      |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
-| 🐝 | **Bees and pesticides**                                                                                                         |
-|    |                                                                                                                                 |
-|    | A number of beehives are observed, to determine how two different pesticides affect the survival of the bees inside.            |
-|    |                                                                                                                                 |
-|    | - Event: observed death                                                                                                         |
-|    | - Predictor: pesticide A vs B                                                                                                   |
-+----+---------------------------------------------------------------------------------------------------------------------------------+
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+|         |                                                                                                                                 |
++=========+=================================================================================================================================+
+| 🍷      | **Wine bottles**                                                                                                                |
+|         |                                                                                                                                 |
+|         | A wine collector records each time a wine bottle in their cellar develops a fault, e.g., a crack.                               |
+|         |                                                                                                                                 |
+|         | - Event of interest: fault developing                                                                                           |
+|         | - Predictor: red vs white wine                                                                                                  |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🔋      | **Battery life**                                                                                                                |
+|         |                                                                                                                                 |
+|         | The battery life on a number of personal devices is tested, by continually using them without plugging them in until they fail. |
+|         |                                                                                                                                 |
+|         | - Event: losing charge (dropping to 0%)                                                                                         |
+|         | - Predictor: laptop vs phone                                                                                                    |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🚲      | **Bicycle tires**                                                                                                               |
+|         |                                                                                                                                 |
+|         | A group of Cambridge students record each time they experience a puncture on one of their bike tires.                           |
+|         |                                                                                                                                 |
+|         | - Event: puncture appearing                                                                                                     |
+|         | - Predictor: road vs mountain bike                                                                                              |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🏃      | **Runners in a marathon**                                                                                                       |
+|         |                                                                                                                                 |
+|         | The length of time taken for a runner to complete a marathon is recorded.                                                       |
+|         |                                                                                                                                 |
+|         | - Event: crossing finish line                                                                                                   |
+|         | - Predictor: whether they've completed a marathon before                                                                        |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🧊      | **Ice cubes**                                                                                                                   |
+|         |                                                                                                                                 |
+|         | A manufacturer is testing their new coolers, by testing how long it takes for a bunch of ice cubes to melt.                     |
+|         |                                                                                                                                 |
+|         | - Event: melting (disappearing)                                                                                                 |
+|         | - Predictor: room temperature (not in the cooler) vs in the cooler                                                              |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🍞      | **Mouldy bread**                                                                                                                |
+|         |                                                                                                                                 |
+|         | A bakery tests how long it takes for bread to go mouldy. They observe each slice from 24 loaves of bread.                       |
+|         |                                                                                                                                 |
+|         | - Event: mould is visible                                                                                                       |
+|         | - Predictor: white vs brown bread                                                                                               |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🎈      | **Balloons deflating**                                                                                                          |
+|         |                                                                                                                                 |
+|         | A bunch of balloons are inflated to the exact same diameter, and observed as they deflate.                                      |
+|         |                                                                                                                                 |
+|         | - Event: balloon drops below a given diameter                                                                                   |
+|         | - Predictor: air vs helium                                                                                                      |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
+| 🐝      | **Bees and pesticides**                                                                                                         |
+|         |                                                                                                                                 |
+|         | A number of beehives are observed, to determine how two different pesticides affect the survival of the bees inside.            |
+|         |                                                                                                                                 |
+|         | - Event: observed death                                                                                                         |
+|         | - Predictor: pesticide A vs B                                                                                                   |
++---------+---------------------------------------------------------------------------------------------------------------------------------+
 
 ::: {.callout-answer collapse="true"}
 #### Answers
@@ -677,16 +677,25 @@ The explanations provided here aren't detailed, and/or you may have interpreted 
 
 However, you can use this to check whether you were on the right lines.
 
-|   | Example | Independence | Non-informative censoring |
-|----|----|----|----|
-| 🍷 | Wine bottles | ✓ | ✓ |
-| 🔋 | Battery life | ✓ | ✓ |
-| 🚲 | Bicycle tires | ✗ - tires come in pairs! | ✓ |
-| 🏃 | Runners in a marathon | ✓ | ✗ - runners who are struggling are more likely to drop out |
-| 🧊 | Ice cubes | ✓ | ✓ |
-| 🍞 | Mouldy bread | ✗ - slices are grouped within loaves | ✓ |
-| 🎈 | Balloons deflating | ✓ | ✓ |
-| 🐝 | Bees and pesticides | ✗ - bees are grouped within hives | ✗ - sick bees are more likely to be exiled/fail to return to the hive |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+|                | Example               | Independence                         | Non-informative censoring                                             |
++================+=======================+======================================+=======================================================================+
+| 🍷             | Wine bottles          | ✓                                    | ✓                                                                     |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🔋             | Battery life          | ✓                                    | ✓                                                                     |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🚲             | Bicycle tires         | ✗ - tires come in pairs!             | ✓                                                                     |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🏃             | Runners in a marathon | ✓                                    | ✗ - runners who are struggling are more likely to drop out            |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🧊             | Ice cubes             | ✓                                    | ✓                                                                     |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🍞             | Mouldy bread          | ✗ - slices are grouped within loaves | ✓                                                                     |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🎈             | Balloons deflating    | ✓                                    | ✓                                                                     |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
+| 🐝             | Bees and pesticides   | ✗ - bees are grouped within hives    | ✗ - sick bees are more likely to be exiled/fail to return to the hive |
++----------------+-----------------------+--------------------------------------+-----------------------------------------------------------------------+
 :::
 ::::
 
