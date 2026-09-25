@@ -13,7 +13,9 @@ Ideas:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
 
+```{r}
 library(tidyverse)
 library(rstatix)
 library(survival)
@@ -1475,6 +1477,603 @@ ggsave("materials/images/baseline_hazard_eggs.png", plot = baseline_h_eggs,
 ggsave("materials/images/baseline_hazard_eggs2.png", plot = baseline_h_eggs_2,
        width = 5, height = 3.5)
 ```
+
+# Showing hazard ratios
+
+```{r, depreciated}
+# Time range for plotting
+t <- seq(0, max(hatching$time), length.out = 500)
+
+# True survival functions
+true_survival <- data.frame(
+  time = rep(t, 2),
+  survival = c(
+    exp(-lambda * t),                              # chromatic
+    exp(-lambda * exp(beta_scales) * t)            # metallic
+  ),
+  scales = rep(c("chromatic", "metallic"), each = length(t))
+)
+
+ggplot(true_survival, aes(x = time, y = survival, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(
+    x = "Time",
+    y = "Survival probability",
+    colour = "Scale",
+    title = "True survival curves"
+  )
+```
+
+```{r, depreciated}
+# True hazard functions
+true_hazard <- data.frame(
+  time = rep(t, 2),
+  hazard = c(
+    lambda,                              # chromatic
+    lambda * exp(beta_scales)            # metallic
+  ),
+  scales = rep(c("chromatic", "metallic"), each = length(t))
+)
+
+ggplot(true_hazard, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate",
+    colour = "Scale",
+    title = "True hazard functions"
+  )
+```
+
+```{r, depreciated}
+increasing_hazard <- function(t) {
+  lambda <- 0.2
+  HR_start <- 0.30
+  HR_end <- 0.8
+  scale <- 18
+
+  # Smoothly changing HR
+  HR <- function(t) {
+    HR_end - (HR_end - HR_start) * exp(-t / scale)
+  }
+
+  return(lambda * HR(t))
+}
+
+cox_hazard <- function(t, x, beta) {
+  increasing_hazard(t) * exp(beta * x)
+}
+
+t <- seq(0, 60, length.out = 200)
+
+beta <- 0.7
+
+plot_data <- data.frame(
+  time = rep(t, 2),
+  x = factor(rep(c(0.5, 1), each = length(t)))
+)
+
+plot_data$hazard <- mapply(
+  function(time, x) {
+    increasing_hazard(time) * exp(beta * as.numeric(as.character(x)))
+  },
+  plot_data$time,
+  plot_data$x
+)
+```
+
+```{r, depreciated}
+dragon_hr_categorical <- ggplot(plot_data, aes(x = time, y = hazard, colour = x)) +
+  geom_line(linewidth = 1.2) +
+  labs(title = "Effect of weight", x = "Time", y = "Hazard rate h(t)", colour = "") +
+  theme_classic(base_size = 15) +
+  # change colours of lines and labels in legend
+  # make the colours different variations of the original blue
+  scale_color_manual(values = c("#55A51C","#8F2BBC"), 
+                     labels = c("Metallic","Chromatic")) +
+  ylim(0, 0.35) +
+  # move legend to top left corner of plot and make it smaller
+  theme(legend.position = c(0.2, 0.9),
+        legend.key.size = unit(0.5, "cm"),
+        legend.text = element_text(size = 10))
+
+dragon_hr_categorical
+```
+
+```{r}
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_hr_categorical.png", plot = dragon_hr_categorical,
+       width = 7, height = 5)
+```
+
+## Using existing dragon curves
+
+Simulate above
+plot: dragon_curve_1
+
+```{r}
+dragons <- read_csv("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/data/hatching.csv")
+
+scales_curve <- survfit(Surv(time, hatched) ~ scales, dragons)
+
+scales_cox <- coxph(Surv(time, hatched) ~ scales, dragons)
+```
+```{r}
+cox_fit <- scales_cox
+
+# Extract baseline cumulative hazard
+base <- basehaz(cox_fit, centered = FALSE)
+
+# Estimate instantaneous baseline hazard
+base <- base |>
+  mutate(
+    hazard = c(diff(hazard) / diff(time), NA)
+  ) |>
+  filter(!is.na(hazard), hazard >= 0)
+
+# Cox coefficient for metallic vs chromatic
+beta <- coef(cox_fit)["scalesmetallic"]
+
+# Calculate estimated hazard for each group
+hazard_curves <- base |>
+  transmute(
+    time,
+    chromatic = hazard,
+    metallic = hazard * exp(beta)
+  ) |>
+  pivot_longer(
+    cols = c(chromatic, metallic),
+    names_to = "scales",
+    values_to = "hazard"
+  )
+
+# Plot smoothed hazard curves
+ggplot(hazard_curves, aes(x = time, y = hazard, colour = scales)) +
+  geom_smooth(
+    method = "loess",
+    se = FALSE,
+    span = 0.8
+  ) +
+  labs(
+    x = "Time",
+    y = "Estimated hazard (smoothed)",
+    colour = "Scale"
+  ) +
+  theme_classic() +
+  scale_color_manual(values = c("#8F2BBC","#55A51C"), 
+                     labels = c("Chromatic","Metallic"))
+  
+```
+
+
+## Artificial showing 2 (3) scalec colours
+
+Create an artificial version of the plot above, this time making up the shape of the hazard
+Let's go for something that starts approximately flat and then declines
+Start by just showing the baseline hazard, then add the metallic hazard (which is lower than the baseline, with a beta of 0.6565)
+```{r}
+peaked_hazard <- function(t) {
+  lambda <- 0.20
+  peak <- 20
+  width <- 10
+  baseline <- 0.02
+
+  hazard <- baseline + lambda * exp(-(t - peak)^2 / (2 * width^2))
+
+  return(hazard)
+}
+```
+
+```{r}
+# Create a time vector
+t <- seq(0, 60, length.out = 200)
+
+# Calculate the baseline hazard for each time point
+baseline <- sapply(t, peaked_hazard)
+
+# Calculate the metallic hazard (lower than baseline)
+beta <- -0.6565
+metallic <- baseline * exp(beta)
+
+# Create a data frame for plotting
+plot_data <- data.frame(
+  time = t,
+  baseline = baseline,
+  metallic = metallic
+) |>
+  pivot_longer(
+    cols = c(baseline, metallic),
+    names_to = "scales",
+    values_to = "hazard"
+  )
+
+# Plot the hazards
+dragon_categorical_hazards <- ggplot(plot_data, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Scale colour",
+    title = "Estimated hazard curves for chromatic and metallic dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#8F2BBC","#55A51C"), 
+                     labels = c("Chromatic","Metallic")) +
+geom_segment(aes(x = 30, xend = 30, y = 0, yend = metallic[which.min(abs(t - 30))]), colour = "white", linetype = "dashed")
+```
+
+```{r}
+# A version of the same plot but where only the chromatic hazard is shown
+dragon_categorical_hazards_bl <- ggplot(plot_data, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Scale colour",
+    title = "Estimated hazard curves for chromatic and metallic dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#8F2BBC","white"), 
+                     labels = c("Chromatic","(baseline)")) +
+geom_segment(aes(x = 30, xend = 30, y = 0, yend = metallic[which.min(abs(t - 30))]), colour = "white", linetype = "dashed")
+
+dragon_categorical_hazards_bl2 <- ggplot(plot_data, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "",
+    title = "Estimated hazard curves for chromatic and metallic dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("black","white"), 
+                     labels = c("Baseline    ","hazard")) +
+geom_segment(aes(x = 30, xend = 30, y = 0, yend = metallic[which.min(abs(t - 30))]), colour = "white", linetype = "dashed")
+
+dragon_categorical_hazards_bl
+dragon_categorical_hazards_bl2
+```
+
+```{r}
+# Adding to the above plot: vertical lines/arrows from the x-axis to the hazard curves at t = 20 and t = 40
+# Also add horizontal lines across to the y-axis to show the approximate hazard values at those points for both curves
+dragon_categorical_hazards_t20 <- dragon_categorical_hazards +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))]), colour = "#8F2BBC", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = metallic[which.min(abs(t - 20))]), colour = "#55A51C", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))], yend = baseline[which.min(abs(t - 20))]), colour = "#8F2BBC", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = metallic[which.min(abs(t - 20))], yend = metallic[which.min(abs(t - 20))]), colour = "#55A51C", linetype = "dashed") +
+  # annotate text with exact hazard values, position top right of plot
+  annotate("text", x = 50, y = 0.2, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))], 2)), colour = "#8F2BBC") +
+  annotate("text", x = 50, y = 0.19, label = paste0("h(t=20) = ", round(metallic[which.min(abs(t - 20))], 2)), colour = "#55A51C")
+
+dragon_categorical_hazards_t20
+```
+
+```{r}
+# Adding to the above plot: vertical lines/arrows from the x-axis to the hazard curves at t = 20 and t = 40
+# Also add horizontal lines across to the y-axis to show the approximate hazard values at those points for both curves
+dragon_categorical_hazards_t30 <- dragon_categorical_hazards_t20 +
+  geom_segment(aes(x = 30, xend = 30, y = 0, yend = baseline[which.min(abs(t - 30))]), colour = "#8F2BBC", linetype = "dashed") +
+  geom_segment(aes(x = 30, xend = 30, y = 0, yend = metallic[which.min(abs(t - 30))]), colour = "#55A51C", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 30, y = baseline[which.min(abs(t - 30))], yend = baseline[which.min(abs(t - 30))]), colour = "#8F2BBC", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 30, y = metallic[which.min(abs(t - 30))], yend = metallic[which.min(abs(t - 30))]), colour = "#55A51C", linetype = "dashed") +
+  # annotate text with exact hazard values, position top right of plot
+  annotate("text", x = 50, y = 0.17, label = paste0("h(t=30) = ", round(baseline[which.min(abs(t - 30))], 2)), colour = "#8F2BBC") +
+  annotate("text", x = 50, y = 0.16, label = paste0("h(t=30) = ", round(metallic[which.min(abs(t - 30))], 2)), colour = "#55A51C")
+
+dragon_categorical_hazards_t30
+```
+
+```{r}
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards_bl.png", plot = dragon_categorical_hazards_bl,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards_bl2.png", plot = dragon_categorical_hazards_bl2,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards.png", plot = dragon_categorical_hazards,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards_t20.png", plot = dragon_categorical_hazards_t20,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards_t30.png", plot = dragon_categorical_hazards_t30,
+       width = 8, height = 5)
+```
+
+Now recreate the plots above, but let's add a third category "iridescent"
+Give it a hazard ratio of ~0.3 instead
+
+```{r}
+beta_iridescent <- log(0.3)
+
+# add to the plot data object
+plot_data$iridescent <- baseline * exp(beta_iridescent)
+
+# Plot the hazards
+dragon_categorical_hazards_iri <- ggplot(plot_data, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Scale colour",
+    title = "Estimated hazard curves for chromatic and metallic dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#8F2BBC","#55A51C","#EA7125"), 
+                     labels = c("Chromatic","Metallic","Iridescent")) +
+geom_segment(aes(x = 30, xend = 30, y = 0, yend = metallic[which.min(abs(t - 30))]), colour = "white", linetype = "dashed")
+
+dragon_categorical_hazards_iri
+```
+
+```{r}
+# Create a time vector
+t <- seq(0, 60, length.out = 200)
+
+# Calculate the baseline hazard for each time point
+baseline <- sapply(t, peaked_hazard)
+
+# Calculate the metallic hazard (lower than baseline)
+beta <- -0.6565
+beta_iri <- -1.1
+metallic <- baseline * exp(beta)
+iridescent <- baseline * exp(beta_iri)
+
+# Create a data frame for plotting
+# Make scales an ordered factor
+plot_data <- data.frame(
+  time = t,
+  baseline = baseline,
+  metallic = metallic,
+  iridescent = iridescent
+) |>
+  pivot_longer(
+    cols = c(baseline, metallic, iridescent),
+    names_to = "scales",
+    values_to = "hazard"
+  ) |>
+  mutate(scales = factor(scales, levels = c("baseline", "metallic", "iridescent")))
+
+# Plot the hazards
+dragon_categorical_hazards_iri <- ggplot(plot_data, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Scale colour",
+    title = "Estimated hazard curves for three types of dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#8F2BBC","#55A51C","#EA7125"), 
+                     labels = c("Chromatic","Metallic","Iridescent")) +
+  geom_segment(aes(x = 30, xend = 30, y = 0, yend = 0.01), colour = "white", linetype = "dashed")
+
+dragon_categorical_hazards_iri
+```
+
+```{r}
+# Now add lines at t=20
+dragon_categorical_hazards_iri_t20 <- dragon_categorical_hazards_iri +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))]), colour = "#8F2BBC", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = metallic[which.min(abs(t - 20))]), colour = "#55A51C", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = iridescent[which.min(abs(t - 20))]), colour = "#EA7125", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))], yend = baseline[which.min(abs(t - 20))]), colour = "#8F2BBC", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = metallic[which.min(abs(t - 20))], yend = metallic[which.min(abs(t - 20))]), colour = "#55A51C", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = iridescent[which.min(abs(t - 20))], yend = iridescent[which.min(abs(t - 20))]), colour = "#EA7125", linetype = "dashed") +
+  annotate("text", x = 50, y = 0.2, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))], 2)), colour = "#8F2BBC") +
+  annotate("text", x = 50, y = 0.19, label = paste0("h(t=20) = ", round(metallic[which.min(abs(t - 20))], 2)), colour = "#55A51C") +
+  annotate("text", x = 50, y = 0.18, label = paste0("h(t=20) = ", round(iridescent[which.min(abs(t - 20))], 2)), colour = "#EA7125")
+
+dragon_categorical_hazards_iri_t20
+```
+
+```{r}
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards_iri.png", plot = dragon_categorical_hazards_iri,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_categorical_hazards_iri_t20.png", plot = dragon_categorical_hazards_iri_t20,
+       width = 8, height = 5)
+```
+
+```{r, depreciated}
+# Extract baseline cumulative hazard
+base <- basehaz(cox_fit, centered = FALSE)
+
+# Smooth the cumulative baseline hazard
+cumhaz_smooth <- loess(
+  hazard ~ time,
+  data = base,
+  span = 0.7
+)
+
+# Create a fine time grid
+time_grid <- seq(
+  min(base$time),
+  max(base$time),
+  length.out = 500
+)
+
+# Predict the smoothed cumulative hazard
+smooth_H <- predict(cumhaz_smooth, newdata = data.frame(time = time_grid))
+
+# Estimate instantaneous baseline hazard from the smoothed
+# cumulative hazard
+smooth_h <- c(
+  diff(smooth_H) / diff(time_grid),
+  NA
+)
+
+# Remove final NA and any small negative values caused by smoothing
+baseline_hazard <- data.frame(
+  time = time_grid,
+  hazard = smooth_h
+) |>
+  filter(!is.na(hazard)) |>
+  mutate(hazard = pmax(hazard, 0))
+
+# Cox coefficient for metallic vs chromatic
+beta <- coef(cox_fit)["scalesmetallic"]
+
+# Calculate hazard for each scale
+hazard_curves <- baseline_hazard |>
+  transmute(
+    time,
+    chromatic = hazard,
+    metallic = hazard * exp(beta)
+  ) |>
+  pivot_longer(
+    cols = c(chromatic, metallic),
+    names_to = "scales",
+    values_to = "hazard"
+  )
+
+# Plot
+ggplot(hazard_curves, aes(x = time, y = hazard, colour = scales)) +
+  geom_line(linewidth = 1) +
+  labs(
+    x = "Time",
+    y = "Estimated hazard",
+    colour = "Scale"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_hr_categorical.png", plot = dragon_hr_categorical,
+       width = 7, height = 5)
+```
+
+## Showing hazard ratios for a continuous predictor
+
+Start with the same baseline hazard as above, but now add a continuous predictor (weight) with a log-hazard ratio of 0.7
+Continue using peaked_hazard function for baseline hazard
+Show the hazard curve for weights of 1, 2, 4, and 5
+```{r}
+weight_values <- c(1, 2, 4, 5)
+beta_weight <- -log(0.7)
+
+# Create a time vector
+t <- seq(0, 60, length.out = 200)
+
+# Calculate the baseline hazard for each time point
+baseline <- sapply(t, peaked_hazard)
+
+# Generate plot data
+plot_data_cont <- data.frame(
+  time = rep(t, length(weight_values)),
+  weight = rep(weight_values, each = length(t)),
+  baseline = rep(baseline, length(weight_values))
+) |>
+  mutate(hazard = baseline * exp(beta_weight * weight))
+```
+
+```{r}
+# Plot the hazards for different weights
+# Use the series of increasingly light blues for the colour values
+dragon_continuous_hazards <- ggplot(plot_data_cont, aes(x = time, y = hazard, colour = factor(weight))) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Weight of egg",
+    title = "Estimated hazard curves for different weights of dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#0072CF", "#49ADFF", "#80CFFF", "#C2E4FF"), 
+                     labels = c("1kg       ","2kg","4kg","5kg"))  +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = 0.1), colour = "white", linetype = "dashed")
+
+dragon_continuous_hazards
+```
+
+```{r}
+# Above plot but with 2 and 5kg in white
+dragon_continuous_hazards_bl <- ggplot(plot_data_cont, aes(x = time, y = hazard, colour = factor(weight))) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Weight of egg",
+    title = "Estimated hazard curves for different weights of dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#0072CF", "white", "white", "white"), 
+                     labels = c("1kg       ","","",""))  +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = 0.1), colour = "white", linetype = "dashed")
+
+dragon_continuous_hazards_bl
+```
+
+```{r}
+# Above plot but with 2 and 5kg in white
+dragon_continuous_hazards_bl2 <- ggplot(plot_data_cont, aes(x = time, y = hazard, colour = factor(weight))) +
+  geom_line(linewidth = 1.2) +
+  labs(
+    x = "Time",
+    y = "Hazard rate h(t)",
+    colour = "Weight of egg",
+    title = "Estimated hazard curves for different weights of dragon eggs"
+  ) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = c("#0072CF", "#49ADFF", "white","white"), 
+                     labels = c("1kg       ","2kg","",""))  +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = 0.1), colour = "white", linetype = "dashed")
+
+dragon_continuous_hazards_bl2
+```
+
+```{r}
+# Add lines to show hazard value at t=20
+dragon_continuous_hazards_bl2_t20 <- dragon_continuous_hazards_bl2 +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 1)), colour = "#0072CF", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 2)), colour = "#49ADFF", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))] * exp(beta_weight * 1), yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 1)), colour = "#0072CF", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))] * exp(beta_weight * 2), yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 2)), colour = "#49ADFF", linetype = "dashed") +
+  annotate("text", x = 50, y = 1, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))] * exp(beta_weight * 1), 2)), colour = "#0072CF") +
+  annotate("text", x = 50, y = 0.95, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))] * exp(beta_weight * 2), 2)), colour = "#49ADFF")
+
+dragon_continuous_hazards_bl2_t20
+```
+
+```{r}
+dragon_continuous_hazards_bl3_t20 <- dragon_continuous_hazards +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 1)), colour = "#0072CF", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 2)), colour = "#49ADFF", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 4)), colour = "#80CFFF", linetype = "dashed") +
+  geom_segment(aes(x = 20, xend = 20, y = 0, yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 5)), colour = "#C2E4FF", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))] * exp(beta_weight * 1), yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 1)), colour = "#0072CF", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))] * exp(beta_weight * 2), yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 2)), colour = "#49ADFF", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))] * exp(beta_weight * 4), yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 4)), colour = "#80CFFF", linetype = "dashed") +
+  geom_segment(aes(x = 0, xend = 20, y = baseline[which.min(abs(t - 20))] * exp(beta_weight * 5), yend = baseline[which.min(abs(t - 20))] * exp(beta_weight * 5)), colour = "#C2E4FF", linetype = "dashed") +
+  annotate("text", x = 50, y = 1, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))] * exp(beta_weight * 1), 2)), colour = "#0072CF") +
+  annotate("text", x = 50, y = 0.95, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))] * exp(beta_weight * 2), 2)), colour = "#49ADFF") +
+  annotate("text", x = 50, y = 0.85, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))] * exp(beta_weight * 4), 2)), colour = "#80CFFF") +
+  annotate("text", x = 50, y = 0.8, label = paste0("h(t=20) = ", round(baseline[which.min(abs(t - 20))] * exp(beta_weight * 5), 2)), colour = "#C2E4FF")
+
+dragon_continuous_hazards_bl3_t20
+```
+
+```{r}
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_continuous_hazards.png", plot = dragon_continuous_hazards,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_continuous_hazards_bl.png", plot = dragon_continuous_hazards_bl,
+       width = 8, height = 5)
+
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_continuous_hazards_bl2.png", plot = dragon_continuous_hazards_bl2,
+       width = 8, height = 5)
+       
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_continuous_hazards_bl2_t20.png", plot = dragon_continuous_hazards_bl2_t20,
+       width = 8, height = 5)
+       
+ggsave("C:/Users/vicki/Documents/BTF_repos/stats-survival-analysis/materials/images/dragons_continuous_hazards_bl3_t20.png", plot = dragon_continuous_hazards_bl3_t20,
+       width = 8, height = 5)       
+```
+
+## Recreate some of the earlier baseline hazard plots
+
+
 
 # Exercises - log-ranks/survival curves
 

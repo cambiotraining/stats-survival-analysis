@@ -6,6 +6,7 @@ output: html_document
 ```{r, load packages}
 #| echo: false
 #| message: false
+#| warning: false
 #| results: hide
 source(file = "setup_files/setup.R")
 ```
@@ -13,6 +14,7 @@ source(file = "setup_files/setup.R")
 ```{python, import libraries}
 #| echo: false
 #| message: false
+#| warning: false
 #| results: hide
 exec(open('setup_files/setup.py').read())
 import shutup;shutup.please()

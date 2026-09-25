@@ -6,6 +6,7 @@ editor: visual
 ```{r}
 #| echo: false
 #| message: false
+#| warning: false
 #| results: hide
 source(file = "setup_files/setup.R")
 ```
@@ -13,6 +14,7 @@ source(file = "setup_files/setup.R")
 ```{python}
 #| echo: false
 #| message: false
+#| warning: false
 #| results: hide
 exec(open('setup_files/setup.py').read())
 import shutup;shutup.please()
@@ -189,7 +191,7 @@ This looks pretty parallel to me. (You could also double-check what you think of
 Particularly with the introduction of the `surgery` and `weekend_admission` variables, we can consider a few different possible issues.
 
 | Problem | Assumption affected |
-|-----------------------------------------------|-------------------------|
+|----------------------------------------------|-------------------------|
 | Patients operated on by the same surgeon/surgical teams may have more similar outcomes | Independence |
 | Patients admitted around the same time may have more similar ailments and therefore more similar outcomes (e.g., drinking-related injuries are more common on weekends) | Independence |
 | Patients requiring complex or specialist surgeries may be more likely to be transferred to other hospitals, and thus lost from the study | Non-informative censoring |

@@ -6,6 +6,7 @@ output: html_document
 ```{r}
 #| echo: false
 #| message: false
+#| warning: false
 #| results: hide
 source(file = "setup_files/setup.R")
 ```
@@ -13,6 +14,7 @@ source(file = "setup_files/setup.R")
 ```{python}
 #| echo: false
 #| message: false
+#| warning: false
 #| results: hide
 exec(open('setup_files/setup.py').read())
 import shutup;shutup.please()
@@ -306,7 +308,7 @@ And, since fruit within batches are likely to be more similar to each other (gro
 So, in summary:
 
 | Assumption/consideration | Met? | Reasoning |
-|-------------------------|--------|---------------------------------------|
+|----------------------|---------------|-----------------------------------|
 | Proportional hazards | ✓ | Survival curves look promising |
 | Non-informative censoring | ✗ | Fruit more likely to be censored (eaten) the closer it gets to ripening/going off |
 | Independence | ✗ | Fruit are bought and stored in batches, creating artificial similarity |
